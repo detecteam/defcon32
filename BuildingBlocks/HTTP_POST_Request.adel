@@ -1,0 +1,18 @@
+title "HTTP POST Request"
+
+step http {
+       $source.ip = "10.5.7.42"
+       $destination.domain = "www.detecteam.com"
+       $destination.ip = ip.gethostbyname($destination.domain)
+
+       $user-agent = "My nice user-agent"
+       $http.request.method = "POST"
+       $url.path = "/index.html"
+       $http.request.mime_type = "text/plain"
+       $http.request.body.content = """This is a
+sample text"""
+
+       $http.response.server = "Apache/1.2.3.4 (OS/2)"
+
+       run HTTPConnection
+}

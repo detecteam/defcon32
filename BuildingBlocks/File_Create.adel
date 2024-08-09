@@ -1,0 +1,7 @@
+title "Create a File"
+
+step file_create {
+       $file.name = "C:\\Users\\Seb\\file.txt"
+
+       action File.Create
+}

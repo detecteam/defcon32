@@ -1,0 +1,1349 @@
+{
+    "type": "bundle",
+    "id": "bundle--60d9033d-cce5-48d6-ac59-272f7f549347",
+    "objects": [
+        {
+            "id": "location--c5304924-8d30-4d9c-95fb-c9732ccb3f87",
+            "spec_version": "2.1",
+            "type": "location",
+            "country": "US",
+            "administrative_area": "US-DC",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "type": "marking-definition",
+            "spec_version": "2.1",
+            "id": "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+            "created": "2023-03-02T16:12:45.065Z",
+            "extensions": {
+                "extension-definition--3a65884d-005a-4290-8335-cb2d778a83ce": {
+                    "extension_type": "property-extension",
+                    "identifier": "isa:guide.19001.ACS3-9d485d52-22f9-4c9c-88e3-f062c6af664a",
+                    "create_date_time": "2023-03-02T16:12:45.065Z",
+                    "responsible_entity_custodian": "USA.DHS.NCCIC",
+                    "responsible_entity_originator": "USA.DHS.NCCIC",
+                    "policy_reference": "urn:isa:policy:acs:ns:v3.0?privdefault=deny&sharedefault=deny",
+                    "control_set": {
+                        "classification": "U",
+                        "formal_determination": [
+                            "INFORMATION-DIRECTLY-RELATED-TO-CYBERSECURITY-THREAT"
+                        ]
+                    },
+                    "authority_reference": [
+                        "urn:isa:authority:ais"
+                    ],
+                    "access_privilege": [
+                        {
+                            "privilege_action": "CISAUSES",
+                            "rule_effect": "permit",
+                            "privilege_scope": {
+                                "entity": [
+                                    "ALL"
+                                ],
+                                "permitted_nationalities": [
+                                    "ALL"
+                                ],
+                                "permitted_organizations": [
+                                    "ALL"
+                                ],
+                                "shareability": [
+                                    "ALL"
+                                ]
+                            }
+                        }
+                    ],
+                    "further_sharing": [
+                        {
+                            "sharing_scope": [
+                                "USA.USG"
+                            ],
+                            "rule_effect": "permit"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "attack-pattern--a027bb56-2e26-4d4b-91a2-0b7d175d9f11",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Resource Development - Develop Capabilities [T1587]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--ecb90436-7abf-4e55-9800-f861008e32d5",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Initial Access - Exploit Public-Facing Application [T1190]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--af8dcf4f-1211-47bd-ae6a-bf452f736889",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Initial Access - Phishing [T1566]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--2c55a427-3815-4f20-a569-9ab7637f3744",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Initial Access - Valid Accounts [T1078]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--3c801fd3-4ad5-4977-b03b-1f1b181b0631",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Execution - Command and Scripting Interpreter: PowerShell [T1059.001]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--456fe14f-f9ed-4782-bda6-2d3ef98aa052",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Execution - Command and Scripting Interpreter: Windows Command Shell [T1059.003]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--d92d93aa-63d4-46b4-a734-171eda51e957",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Defense Evasion - Hide Artifacts: Hidden Window [T1564.003]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--cb9165d7-21bb-4b68-aec1-c7a2a8c875f9",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Defense Evasion - Indicator Removal: Clear Windows Event Logs [T1070.001]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--35af2816-8b4c-4911-a66a-0aca85b0c5c6",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Defense Evasion - Indicator Removal: File Deletion [T1070.004]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--20e60b2d-7c50-4086-bf60-0ed53d66445d",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Defense Evasion - Modify Registry [T1112]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--19bf3522-a2b9-4aa9-bb70-8b63caeb876f",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Defense Evasion - Process Injection: Portable Executable Injection [T1055.002]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--8f9f3ff8-16b9-43aa-818a-3de27187d4ce",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Credential Access - OS Credential Dumping: NTDS [T1003.003]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--82820b9d-e26a-4d9e-aac7-43193001ad36",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - Account Discovery: Domain Account [T1087.002]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--1e806f48-0817-4dbb-b68d-f17193cfa6a7",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - Domain Trust Discovery [T1482]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--b752f0d0-4ba3-4f45-96f8-31744b719bbc",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - Permission Groups Discovery: Domain Groups [T1069.002]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--8b782a9c-d654-4851-8574-86fe07e9dbd5",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - Permission Groups Discovery: Local Groups [T1069.001]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--ffa31dc0-fd58-480d-81d5-e2f32925e498",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - Remote System Discovery [T1018]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--7774cadb-4a37-495d-85f0-da284133a25b",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - System Network Configuration Discovery [T1016]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--1d3db67e-4ad8-4830-abc0-ec9538b26d28",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Discovery - System Owner/User Discovery [T1033]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--f34b87e8-07c6-4055-97a8-f1b021ac0a06",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Lateral Movement - Remote Services: Remote Desktop Protocol [T1021.001]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--981cf641-835d-41e4-aecb-c891644613e4",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Lateral Movement - Remote Services: SSH [T1021.004]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--2aa36713-80d9-4f85-92cd-3bd16f0f3aed",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Command and Control - Remote Access Software [T1219]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "attack-pattern--1f50a6e4-ef33-421e-b2ec-3c6e4b9da286",
+            "type": "attack-pattern",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "spec_version": "2.1",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "name": "Impact - Data Encrypted for Impact [T1486]",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "indicator--bafbf711-9b5e-4c66-8f76-0a9f07a24d00",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psversion.txt') AND file:hashes.MD5 = '86A1461B30BB482652D8E2223D03C2A4' AND file:hashes.'SHA-256' = '8E43D1DDBD5C129055528A93F1E3FAB0ECDF73A8A7BA9713DC4C3E216D7E5DB4']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--29c41cb7-3ccd-44be-b5c4-bf85879c3c75",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'Pstools.chm') AND file:hashes.MD5 = '009AC2BE60F92DC2C41B094CE2D3857C' AND file:hashes.'SHA-256' = '2813B6C07D17D25670163E0F66453B42D2F157BF2E42007806EBC6BB9D114ACC']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--f993b02c-dfe1-44ba-85b4-d231f2b19a5b",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PSTools.zip') AND file:hashes.'SHA-256' = 'A9CA77DFE03CE15004157727BB43BA66F00CEB215362C9B3D199F000EDAA8D61']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--84503b46-c2d4-4173-a8a7-610934c7c397",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pssuspend.exe') AND file:hashes.MD5 = '1B9F1A75593DFC670FA7C54659AB5796' AND file:hashes.'SHA-256' = '95A922E178075FB771066DB4AB1BD70C7016F794709D514AB1C7F11500F016CD']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--be0a8aec-ac2c-4df0-987e-2992afb9665b",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pssuspend64.exe') AND file:hashes.MD5 = '6EEEEB93F86C729FAA2280525C699CAF' AND file:hashes.'SHA-256' = '4BF8FBB7DB583E1AACBF36C5F740D012C8321F221066CC68107031BD8B6BC1EE']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--a572dbc7-ad37-4eba-9a82-bda7d11386a9",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psshutdown.exe') AND file:hashes.MD5 = '31E8E12D02A6CAC9088D89215CF4552C' AND file:hashes.'SHA-256' = '13FD3AD690C73CF0AD26C6716D4E9D1581B47C22FB7518B1D3BF9CFB8F9E9123']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--b95aeec1-0c18-4043-a305-ebdd61ad4338",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psshutdown64.exe') AND file:hashes.MD5 = 'B5B4ABC85D5D8C817CE552C3C6A0ABA5' AND file:hashes.'SHA-256' = '4226738489C2A67852D51DBF96574F33E44E509BC265B950D495DA79BB457400']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--e88a28eb-82e3-4e90-afc8-182c0c958f60",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psping.exe') AND file:hashes.MD5 = '93F162D9E1AE290F47695E71589FD4D4' AND file:hashes.'SHA-256' = '355B4A82313074999BD8FA1332B1ED00034E63BD2A0D0367E2622F35D75CF140']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--754f5b1d-b104-44ee-9de9-086b0e432a93",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psping64.exe') AND file:hashes.MD5 = 'AD7E3DDF557E1DE0170E384031D3A221' AND file:hashes.'SHA-256' = 'D1F718D219930E57794BDADF9DDA61406294B0759038CEF282F7544B44B92285']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--6da4025c-bf4b-43e7-9c13-6968015e7b23",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pspasswd.exe') AND file:hashes.MD5 = '427214D675B6BCE9F273EB2DDE0AEEFC' AND file:hashes.'SHA-256' = '6ED5D50CF9D07DB73EAA92C5405F6B1BF670028C602C605DFA7D4FCB80EF0801']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--9ff89e4a-e3ed-4823-8e97-0e3016a5cb69",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pspasswd64.exe') AND file:hashes.MD5 = '2A23848AC28D73352BA80584327FF713' AND file:hashes.'SHA-256' = '8D950068F46A04E77AD6637C680CCCF5D703A1828FBD6BDCA513268AF4F2170F']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--5c99a607-f1c1-498d-839c-88402767c11f",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psloglist.exe') AND file:hashes.MD5 = '4F7F8D6C8B22EB5C0C35B29210E2127C' AND file:hashes.'SHA-256' = 'DCDB9BD39B6014434190A9949DEDF633726FDB470E95CC47CDAA47C1964B969F']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--aa72f649-4bf4-45d4-a5f1-a2c0bdeb6136",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psloglist64.exe') AND file:hashes.MD5 = '14B2F5291036BE454AE2FC762FF6EAAA' AND file:hashes.'SHA-256' = '5E55B4CAF47A248A10ABD009617684E969DBE5C448D087EE8178262AAAB68636']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--216029cc-d0a6-4c2d-b55c-04a92f093bf7",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pslist.exe') AND file:hashes.MD5 = '6C08BAE0981841E0CD22FF0F0E8F7510' AND file:hashes.'SHA-256' = 'ED05F5D462767B3986583188000143F0EB24F7D89605523A28950E72E6B9039A']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--d84f6901-c821-4a89-b616-49e1f5167216",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pslist64.exe') AND file:hashes.MD5 = '77BF50713A9EB7B270A73A9797F8DDFE' AND file:hashes.'SHA-256' = 'D3247F03DCD7B9335344EBBA76A0B92370F32F1CB0E480C734DA52DB2BD8DF60']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--0c966ba1-2cbf-482a-8435-70da663ae5d7",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pskill.exe') AND file:hashes.MD5 = '5801303C49E5BB612AA55FB8B909A9C9' AND file:hashes.'SHA-256' = '5EF168F83B55D2CBD2426AFC5E6FA8161270FA6A2A312831332DC472C95DFA42']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--20f4debc-3fdc-421a-9065-f6789b5ad8b5",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'pskill64.exe') AND file:hashes.MD5 = 'BA9345119C1175C96D27370B0D203E70' AND file:hashes.'SHA-256' = '7BA47558C99E18C2C6449BE804B5E765C48D3A70CEAA04C1E0FAE67FF1D7178D']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--0e4aff2b-fc68-4574-a57f-73a31807dc81",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psfile.exe') AND file:hashes.MD5 = 'A0C7585C86AB8BFE6D55A2547E7C9382' AND file:hashes.'SHA-256' = '4243DC8B991F5F8B3C0F233CA2110A1E03A1D716C3F51E88FAF1D59B8242D329']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--938ecb5b-a13e-4abe-ae5f-2538f28502b1",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'psfile64.exe') AND file:hashes.MD5 = '880ED8C97E6BDB64A342FAD25094049B' AND file:hashes.'SHA-256' = 'BE922312978A53C92A49FEFD2C9F9CC098767B36F0E4D2E829D24725DF65BC21']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--9138d063-aeae-4522-a25b-5305722ce343",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'Eula.txt') AND file:hashes.MD5 = '8C24C4084CDC3B7E7F7A88444A012BFC' AND file:hashes.'SHA-256' = '8329BCBADC7F81539A4969CA13F0BE5B8EB7652B912324A1926FC9BFB6EC005A']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--c4a0017b-bf53-4d0d-bd7e-3f94fc14311d",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsService.exe') AND file:hashes.MD5 = '136F9205A5945681EC470B8461DFEE5F' AND file:hashes.'SHA-256' = 'D3A816FE5D545A80E4639B34B90D92D1039EB71EF59E6E81B3C0E043A45B751C']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--85af8060-c756-41f4-b3b6-a2f828561120",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsService64.exe') AND file:hashes.MD5 = '657C2DA84107644A1397D49E0B526F24' AND file:hashes.'SHA-256' = '554F523914CDBAED8B17527170502199C185BD69A41C81102C50DBB0E5E5A78D']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--632268cf-463d-4390-a3f8-ae2faa475700",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsLoggedon.exe') AND file:hashes.MD5 = 'E3EA271E748CCDAD6A6D3E692D6F337E' AND file:hashes.'SHA-256' = 'D689CB1DBD2E4C06CD15E51A6871C406C595790DDCDCD7DC8D0401C7183720EF']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--7d422131-407d-445f-a61d-2adb87177b21",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsInfo.exe') AND file:hashes.MD5 = '2691D7F266050E6849793D4B6661DDDF' AND file:hashes.'SHA-256' = '951B1B5FD5CB13CDE159CEBC7C60465587E2061363D1D8847AB78B6C4FBA7501']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--93e6f33e-2ad8-42a4-8988-b5358e47212d",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsInfo64.exe') AND file:hashes.MD5 = '86A65CFA9F258B0A46ED54E1AD235078' AND file:hashes.'SHA-256' = 'DE73B73EEB156F877DE61F4A6975D06759292ED69F31AAF06C9811F3311E03E7']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--7a610517-aff4-45b1-8a37-cbc3b86c5c2d",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsGetsid64.exe') AND file:hashes.MD5 = 'C2B0F2DE5955AAA313999FF20B675BE4' AND file:hashes.'SHA-256' = '201D8E77CCC2575D910D47042A986480B1DA28CF0033E7EE726AD9D45CCF4DAA']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--d63baa96-4998-4c20-abbf-66bae82cfc10",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsExec64.exe') AND file:hashes.MD5 = 'DB89EC570E6281934A5C5FCF7F4C8967' AND file:hashes.'SHA-256' = 'EDFAE1A69522F87B12C6DAC3225D930E4848832E3C551EE1E7D31736BF4525EF']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--d4ceb604-457b-4ab7-9141-47b80c4218b4",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "E-mail Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[email-message:from_ref.value = 'rhysidaofficial@onionmail.org']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--77ec5227-8a7c-4b1a-8fcc-a4510d4172c3",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "E-mail Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[email-message:from_ref.value = 'rhysidaeverywhere@onionmail.org']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--fc5938e0-05e0-436a-a53c-fbf545d20f56",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsGetsid.exe') AND file:hashes.MD5 = '3D4112B92A8285D8661BBC29125BDBF5' AND file:hashes.'SHA-256' = 'A48AC157609888471BF8578FB8B2AEF6B0068F7E0742FCCF2E0E288B0B2CFDFB']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--8ad8d362-6612-42cd-a4ff-2534b74bdcc9",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '5.39.222.67']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--13e1cbc8-bd02-48b5-9a4a-16265769b82c",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '157.154.194.6']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--02efd886-d37f-40c8-badf-145ec7ed0143",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '108.62.141.161']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--5e7efa03-2107-44a9-8f8f-96cddce7aa8f",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'S_2.bat') AND file:hashes.'SHA-256' = '918784E25BD24192CE4E999538BE96898558660659E3C624A5F27857784CD7E1']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--cfb57a03-0397-4443-93ae-91a275d964a5",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'S_1.bat') AND file:hashes.'SHA-256' = '97766464D0F2F91B82B557AC656AB82E15CAE7896B1D8C98632CA53C15CF06C4']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--8dd3ba1b-c472-4211-a2f1-ca316e12f778",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'S_0.bat') AND file:hashes.'SHA-256' = '1C4978CD5D750A2985DA9B58DB137FC74D28422F1E087FD77642FAA7EFE7B597']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--058ad1dc-8bfd-4ca9-9779-cd78ed05f06f",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = '1.ps1') AND file:hashes.'SHA-256' = '4E34B9442F825A16D7F6557193426AE7A18899ED46D3B896F6E4357367276183']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--5fd866ac-7a4c-46fd-9ae5-689e658d0a7a",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'conhost.exe') AND file:hashes.'SHA-256' = '6633FA85BB234A75927B23417313E51A4C155E12F71DA3959E168851A600B010']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--a42ab195-96ea-4b64-ad7c-9150c7f4c1a1",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'Sock5.sh') AND file:hashes.'SHA-256' = '48F559E00C472D9FFE3965AB92C6D298F8FB3A3F0D6D203CD2069BFCA4BF3A57']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--551b449d-9ed3-4838-a57b-294265e9062b",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-04-27T00:00:00Z",
+            "pattern": "[(file:name = 'psexec.c' OR file:name = 'psexec.exe') AND file:hashes.MD5 = '24A648A48741B1AC809E47B9543C6F12' AND file:hashes.'SHA-256' = '078163D5C16F64CAA5A14784323FD51451B8C831C73396B967B4E35E6879937B']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--219e821a-5a00-4313-a686-b064b9c8df7e",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "File Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[(file:name = 'PsLoggedon64.exe') AND file:hashes.MD5 = '07ED30D2343BF8914DAAED872B681118' AND file:hashes.'SHA-256' = 'FDADB6E15C52C41A31E3C22659DD490D5B616E017D1B1AA6070008CE09ED27EA']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--8bb86088-9121-4d31-8250-b36aaf1e4189",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2021-04-01T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '156.96.62.58']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--e3a2686a-e1a9-4fdc-9bfe-d6474af1372a",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2021-04-01T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '146.70.104.249']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--131793f6-136c-4832-9553-aa5a9e4ae304",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-08-11T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '108.62.118.136']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--7aa98702-74ef-4aed-a8c7-976585dc7f8b",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2021-03-01T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '5.255.99.59']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--6fb41b14-6dcd-4203-8096-b7135b4c454a",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2020-04-13T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '51.77.102.106']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "type": "relationship",
+            "spec_version": "2.1",
+            "id": "relationship--55f9b35b-9c32-4c25-8452-353f0014d1ea",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "source_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "relationship_type": "located-at",
+            "target_ref": "location--c5304924-8d30-4d9c-95fb-c9732ccb3f87",
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        },
+        {
+            "id": "report--800d4332-8661-42cc-8ec0-82756779a6eb",
+            "type": "report",
+            "spec_version": "2.1",
+            "created": "2023-11-15T14:43:07.000Z",
+            "modified": "2023-11-15T14:43:07.000Z",
+            "name": "AA23-319A StopRansomware Rhysida Ransomware",
+            "description": "The Federal Bureau of Investigation (FBI), Cybersecurity and Infrastructure Security Agency (CISA), and the Multi-State Information Sharing and Analysis Center (MS-ISAC) are releasing this joint CSA to disseminate known Rhysida ransomware IOCs and TTPs identified through investigations as recently as September 2023. Rhysida\\u2014an emerging ransomware variant\\u2014has predominately been deployed against the education, healthcare, manufacturing, information technology, and government sectors since May 2023. The information in this CSA is derived from related incident response investigations and malware analysis of samples discovered on victim networks.\r\n \r\nFBI, CISA, and the MS-ISAC encourage organizations to implement the recommendations in the Mitigations section of this CSA to reduce the likelihood and impact of Rhysida ransomware and other ransomware incidents.",
+            "published": "2023-11-14T00:00:00Z",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "object_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "attack-pattern--a027bb56-2e26-4d4b-91a2-0b7d175d9f11",
+                "attack-pattern--ecb90436-7abf-4e55-9800-f861008e32d5",
+                "attack-pattern--af8dcf4f-1211-47bd-ae6a-bf452f736889",
+                "attack-pattern--2c55a427-3815-4f20-a569-9ab7637f3744",
+                "attack-pattern--3c801fd3-4ad5-4977-b03b-1f1b181b0631",
+                "attack-pattern--456fe14f-f9ed-4782-bda6-2d3ef98aa052",
+                "attack-pattern--d92d93aa-63d4-46b4-a734-171eda51e957",
+                "attack-pattern--cb9165d7-21bb-4b68-aec1-c7a2a8c875f9",
+                "attack-pattern--35af2816-8b4c-4911-a66a-0aca85b0c5c6",
+                "attack-pattern--20e60b2d-7c50-4086-bf60-0ed53d66445d",
+                "attack-pattern--19bf3522-a2b9-4aa9-bb70-8b63caeb876f",
+                "attack-pattern--8f9f3ff8-16b9-43aa-818a-3de27187d4ce",
+                "attack-pattern--82820b9d-e26a-4d9e-aac7-43193001ad36",
+                "attack-pattern--1e806f48-0817-4dbb-b68d-f17193cfa6a7",
+                "attack-pattern--b752f0d0-4ba3-4f45-96f8-31744b719bbc",
+                "attack-pattern--8b782a9c-d654-4851-8574-86fe07e9dbd5",
+                "attack-pattern--ffa31dc0-fd58-480d-81d5-e2f32925e498",
+                "attack-pattern--7774cadb-4a37-495d-85f0-da284133a25b",
+                "attack-pattern--1d3db67e-4ad8-4830-abc0-ec9538b26d28",
+                "attack-pattern--f34b87e8-07c6-4055-97a8-f1b021ac0a06",
+                "attack-pattern--981cf641-835d-41e4-aecb-c891644613e4",
+                "attack-pattern--2aa36713-80d9-4f85-92cd-3bd16f0f3aed",
+                "attack-pattern--1f50a6e4-ef33-421e-b2ec-3c6e4b9da286",
+                "indicator--bafbf711-9b5e-4c66-8f76-0a9f07a24d00",
+                "indicator--29c41cb7-3ccd-44be-b5c4-bf85879c3c75",
+                "indicator--f993b02c-dfe1-44ba-85b4-d231f2b19a5b",
+                "indicator--84503b46-c2d4-4173-a8a7-610934c7c397",
+                "indicator--be0a8aec-ac2c-4df0-987e-2992afb9665b",
+                "indicator--a572dbc7-ad37-4eba-9a82-bda7d11386a9",
+                "indicator--b95aeec1-0c18-4043-a305-ebdd61ad4338",
+                "indicator--e88a28eb-82e3-4e90-afc8-182c0c958f60",
+                "indicator--754f5b1d-b104-44ee-9de9-086b0e432a93",
+                "indicator--6da4025c-bf4b-43e7-9c13-6968015e7b23",
+                "indicator--9ff89e4a-e3ed-4823-8e97-0e3016a5cb69",
+                "indicator--5c99a607-f1c1-498d-839c-88402767c11f",
+                "indicator--aa72f649-4bf4-45d4-a5f1-a2c0bdeb6136",
+                "indicator--216029cc-d0a6-4c2d-b55c-04a92f093bf7",
+                "indicator--d84f6901-c821-4a89-b616-49e1f5167216",
+                "indicator--0c966ba1-2cbf-482a-8435-70da663ae5d7",
+                "indicator--20f4debc-3fdc-421a-9065-f6789b5ad8b5",
+                "indicator--0e4aff2b-fc68-4574-a57f-73a31807dc81",
+                "indicator--938ecb5b-a13e-4abe-ae5f-2538f28502b1",
+                "indicator--9138d063-aeae-4522-a25b-5305722ce343",
+                "indicator--c4a0017b-bf53-4d0d-bd7e-3f94fc14311d",
+                "indicator--85af8060-c756-41f4-b3b6-a2f828561120",
+                "indicator--632268cf-463d-4390-a3f8-ae2faa475700",
+                "indicator--7d422131-407d-445f-a61d-2adb87177b21",
+                "indicator--93e6f33e-2ad8-42a4-8988-b5358e47212d",
+                "indicator--7a610517-aff4-45b1-8a37-cbc3b86c5c2d",
+                "indicator--d63baa96-4998-4c20-abbf-66bae82cfc10",
+                "indicator--d4ceb604-457b-4ab7-9141-47b80c4218b4",
+                "indicator--77ec5227-8a7c-4b1a-8fcc-a4510d4172c3",
+                "indicator--fc5938e0-05e0-436a-a53c-fbf545d20f56",
+                "indicator--8ad8d362-6612-42cd-a4ff-2534b74bdcc9",
+                "indicator--13e1cbc8-bd02-48b5-9a4a-16265769b82c",
+                "indicator--02efd886-d37f-40c8-badf-145ec7ed0143",
+                "indicator--5e7efa03-2107-44a9-8f8f-96cddce7aa8f",
+                "indicator--cfb57a03-0397-4443-93ae-91a275d964a5",
+                "indicator--8dd3ba1b-c472-4211-a2f1-ca316e12f778",
+                "indicator--058ad1dc-8bfd-4ca9-9779-cd78ed05f06f",
+                "indicator--5fd866ac-7a4c-46fd-9ae5-689e658d0a7a",
+                "indicator--a42ab195-96ea-4b64-ad7c-9150c7f4c1a1",
+                "indicator--551b449d-9ed3-4838-a57b-294265e9062b",
+                "indicator--219e821a-5a00-4313-a686-b064b9c8df7e",
+                "indicator--8bb86088-9121-4d31-8250-b36aaf1e4189",
+                "indicator--e3a2686a-e1a9-4fdc-9bfe-d6474af1372a",
+                "indicator--131793f6-136c-4832-9553-aa5a9e4ae304",
+                "indicator--7aa98702-74ef-4aed-a8c7-976585dc7f8b",
+                "indicator--6fb41b14-6dcd-4203-8096-b7135b4c454a",
+                "relationship--55f9b35b-9c32-4c25-8452-353f0014d1ea"
+            ],
+            "object_marking_refs": [
+                "marking-definition--f7e4f504-c247-45df-959b-f44ebba8a990",
+                "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+            ]
+        }
+    ]
+}

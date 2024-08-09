@@ -1,0 +1,14 @@
+title "Email Received"
+
+step email_received {
+        $email.from.address = "pat@vilatac.com"
+        $email.to.address = "mick@nomatac.com"
+        $email.subject = "Lorem ipsum"
+        $email.content = """Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris 
+nisi ut aliquip ex ea commodo consequat."""
+
+       action Email.Received
+}
+

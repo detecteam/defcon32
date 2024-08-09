@@ -1,0 +1,30 @@
+title "AnyDesk download and installation"
+
+section anydessk_download_install "AnyDesk Download and Installation" {
+        $destination.domain = "download.anydesk.com"
+        $destination.ip = ip.gethostbyname($destination.domain)
+          
+        step dns {
+            run DNSQuery
+        }
+        
+        step http {             
+               $user-agent = useragent.generate("windows")
+               $url.path = "/AnyDesk.exe"
+               $http.response.mime_type = "application/octet-stream"
+               $http.response.body.content = url.fetch("https://download.anydesk.com/AnyDesk.exe")
+        
+               $http.response.server = "nginx"
+        
+               run HTTPConnection
+        }
+        
+        step process {
+               $process.parent.command_line = "explorer.exe"
+               $process.command_line = """AnyDesk.exe --install "%Program Files(x86)%\AnyDesk" --start-with-win --silent"""
+        
+               action Process.Start
+        }
+}
+
+

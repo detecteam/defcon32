@@ -1,0 +1,8 @@
+title "Ping/Pong exchange"
+
+step ping {
+       $source.ip = "10.0.1.25"
+       $destination.ip = "1.2.3.4"
+
+       run Ping
+}

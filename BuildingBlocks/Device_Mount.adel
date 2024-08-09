@@ -1,0 +1,8 @@
+title "Device Mount"
+
+step device_mount {
+        $file.name = "C:\\Users\\Seb\\invoice.iso"
+
+        action Device.Mount
+}
+

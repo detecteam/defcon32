@@ -1,0 +1,7 @@
+title "DNS Query"
+step dns {
+       $dns.resolver = "1.1.1.1"
+       $destination.domain = "detecteam.com"
+       $destination.ip = ip.gethostbyname($destination.domain)
+       run DNSQuery
+}

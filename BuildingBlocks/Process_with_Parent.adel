@@ -1,0 +1,7 @@
+title "Process starting with a parent"
+step process {
+       $process.parent.command_line = "cmd.exe"
+       $process.command_line = "dir.exe"
+
+       action Process.Start
+}

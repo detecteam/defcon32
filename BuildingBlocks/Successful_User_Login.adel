@@ -1,0 +1,9 @@
+title "Successful User Login"
+
+step login {
+       $user = user.generate()
+       $user.name = $user["username"]
+
+       action User.LoginSuccess
+}
+

